@@ -156,7 +156,7 @@ def new_member(bot: Bot, update: Update):
 
             else:
                 # If welcome message is media, send with appropriate function
-                if welc_type != sql.Types.TEXT and welc_type != sql.Types.BUTTON_TEXT:
+                if welc_type not in (sql.Types.TEXT.value, sql.Types.BUTTON_TEXT.value):
                     ENUM_FUNC_MAP[welc_type](chat.id, cust_welcome)
                     return
                 # else, move on
