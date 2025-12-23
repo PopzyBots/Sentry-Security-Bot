@@ -912,15 +912,46 @@ def settings_button(bot: Bot, update: Update):
         if mod_match:
             chat_id = mod_match.group(1)
             module = mod_match.group(2)
-            chat = bot.get_chat(chat_id)
-            text = "*{}* has the following settings for the *{}* module:\n\n".format(escape_markdown(chat.title),
-                                                                                     CHAT_SETTINGS[module].__mod_name__) + \
-                   CHAT_SETTINGS[module].__chat_settings__(chat_id, user.id)
-            query.message.reply_text(text=text,
-                                     parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(
-                                         [[InlineKeyboardButton(text="Back",
-                                                                callback_data="stngs_back({})".format(chat_id))]]))
+            # Defensive checks to avoid silent failures if module is missing or raises
+            if module not in CHAT_SETTINGS:
+                LOGGER.warning("settings_button: requested module %s not found in CHAT_SETTINGS", module)
+                try:
+                    bot.answer_callback_query(query.id, text="No settings available for this module.")
+                except Exception:
+                    pass
+                return
+            module_obj = CHAT_SETTINGS[module]
+            if not hasattr(module_obj, "__chat_settings__"):
+                LOGGER.warning("settings_button: module %s has no __chat_settings__", module)
+                try:
+                    bot.answer_callback_query(query.id, text="This module has no settings to display.")
+                except Exception:
+                    pass
+                return
+            try:
+                chat = bot.get_chat(chat_id)
+                text = "*{}* has the following settings for the *{}* module:\n\n".format(escape_markdown(chat.title),
+                                                                                         module_obj.__mod_name__) + \
+                       module_obj.__chat_settings__(chat_id, user.id)
+                query.message.reply_text(text=text,
+                                         parse_mode=ParseMode.MARKDOWN,
+                                         reply_markup=InlineKeyboardMarkup(
+                                             [[InlineKeyboardButton(text="Back",
+                                                                    callback_data="stngs_back({})".format(chat_id))]]))
+                # ensure no spinny white circle
+                bot.answer_callback_query(query.id)
+                try:
+                    query.message.delete()
+                except Exception:
+                    pass
+                return
+            except Exception as excp:
+                LOGGER.exception("settings_button: error while retrieving settings for %s in chat %s", module, chat_id)
+                try:
+                    bot.answer_callback_query(query.id, text="Failed to fetch settings for this module.")
+                except Exception:
+                    pass
+                return
 
         elif prev_match:
             chat_id = prev_match.group(1)
