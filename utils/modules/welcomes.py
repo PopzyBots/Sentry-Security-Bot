@@ -366,32 +366,32 @@ def set_welcome(bot: Bot, update: Update):
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
 
-    # 🔑 IMPORTANT CHANGE
-    if msg.text or msg.caption:
-        raw_text = msg.text or msg.caption
-        
-        # 🔑 extract buttons WITHOUT touching text formatting
-        clean_text, buttons = revert_buttons(raw_text)
-        
-        sql.set_custom_welcome(
-            chat.id,
-            clean_text,
-            sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
-            buttons,
-        )
-
-    update.effective_message.reply_text("Custom welcome message set!")
-    return (
-        f"<b>{html.escape(chat.title)}</b>\n"
-        f"#SET_WELCOME\n"
-        f"Admin: {mention_html(user.id, user.first_name)}"
-    )
-
     text, dtype, content, buttons = get_welcome_type(msg)
 
     if dtype is None:
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
+    
+    # 🔒 Force TEXT / BUTTON_TEXT only (prevents markdown corruption)
+    if buttons:
+        dtype = sql.Types.BUTTON_TEXT
+    else:
+        dtype = sql.Types.TEXT
+    
+    sql.set_custom_welcome(
+        chat.id,
+        content or text,
+        dtype,
+        buttons,
+    )
+    
+    update.effective_message.reply_text("Custom welcome message set!")
+    
+    return (
+        f"<b>{html.escape(chat.title)}</b>\n"
+        f"#SET_WELCOME\n"
+        f"Admin: {mention_html(user.id, user.first_name)}"
+    )
 
     sql.set_custom_welcome(chat.id, content or text, dtype, buttons)
     update.effective_message.reply_text("Custom welcome message set!")
