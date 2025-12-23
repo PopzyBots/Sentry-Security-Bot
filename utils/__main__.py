@@ -31,18 +31,34 @@ PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
 
 # Note: bundled sample image, automatic upload and caching have been removed. Use /genid store to manually set the file id.
 
-HELP_STRINGS = """
+SETTINGS_STRINGS = """
 Hey! My name is *{}*. I am a group management bot, here to help you get around and keep the order in your groups!
 I have lots of handy features, such as flood control, a warning system, a note keeping system, and even predetermined replies on certain keywords.
 
 *Helpful commands*:
 - /start: Starts me! You've probably already used this.
-- /help: Sends this message; I'll tell you more about myself!
+- /help: Opens the usage guide telling you how to use the bot and its commands.
+- /settings: Shows detailed help about features and how to configure them for your chats.
+- /about: Short information about the bot.
 - /donate: Gives you info on how to support me and my creator.
 
 {}
 All commands can be used with the following: / !
 """.format(dispatcher.bot.first_name, "" if not ALLOW_EXCL else "If you have any bugs or questions on how to use me, have a look at my [Group](https://t.me/ProHelpDesk), or head to @ProIndians.")
+
+HELP_STRINGS = """
+Quick usage guide for *{}* — how to use this bot 📘
+
+- /start: Begin a private chat with me and see quick actions (add me to a group, manage settings, help, about).
+- /help: Show this usage guide (what commands do and how to use them).
+- /settings: View detailed help about features and configuration options for the bot (same content as prior help).
+- /about: Learn more about the bot and its capabilities.
+- /genid store (reply to photo): Store a photo file_id to use for the PM start image (owner only).
+- /genid clear: Clear the stored PM start photo id (owner only).
+- /donate: Information on donating to the project's creator.
+
+For module-specific help, use `/help <module>` (e.g. `/help welcomes`).
+""".format(dispatcher.bot.first_name)
 
 DONATE_STRING = """Heya, glad to hear you want to donate!
 It took lots of work for [my creator](t.me/SonOfLars) to get me to where I am now, and every donation helps \
@@ -127,6 +143,9 @@ def genid(bot: Bot, update: Update, args: List[str]):
     msg = update.effective_message  # type: Optional[Message]
     user = update.effective_user  # type: Optional[User]
 
+    # ensure we declare globals before any assignment in this function
+    global PM_START_PHOTO_ID
+
     # parse optional command argument (e.g., store, clear)
     cmd = args[0].lower() if args else None
 
@@ -202,8 +221,8 @@ def start(bot: Bot, update: Update, args: List[str]):
                 send_help(update.effective_chat.id, HELP_STRINGS)
 
             elif args[0].lower() == "settings":
-                # Show user's personal settings (or instruct how to manage group settings)
-                send_settings(None, update.effective_user.id, True)
+                # Show detailed help/settings content in PM (maps to previous help text)
+                send_help(update.effective_chat.id, SETTINGS_STRINGS)
 
             elif args[0].lower().startswith("stngs_"):
                 match = re.match("stngs_(.*)", args[0].lower())
@@ -368,6 +387,12 @@ def get_help(bot: Bot, update: Update):
         send_help(chat.id, HELP_STRINGS)
 
 
+@run_async
+def about(bot: Bot, update: Update):
+    about_text = "<b>About {}</b>\nI keep chats clean, safe, and fully under control. For help, click Help.".format(html.escape(bot.first_name))
+    update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
+
+
 def send_settings(chat_id, user_id, user=False):
     if user:
         if USER_SETTINGS:
@@ -473,13 +498,14 @@ def get_settings(bot: Bot, update: Update):
             msg.reply_text(text,
                            reply_markup=InlineKeyboardMarkup(
                                [[InlineKeyboardButton(text="Settings",
-                                                      url="t.me/{}?start=stngs_{}".format(
-                                                          bot.username, chat.id))]]))
+                                                      url="t.me/{}?start=settings".format(
+                                                          bot.username))]]))
         else:
             text = "Click here to check your settings."
 
     else:
-        send_settings(chat.id, user.id, True)
+        # In PM, show the detailed settings/help content (matches previous help output)
+        send_help(chat.id, SETTINGS_STRINGS)
 
 
 @run_async
@@ -532,6 +558,7 @@ def main():
     help_callback_handler = CallbackQueryHandler(help_button, pattern=r"help_")
 
     settings_handler = CommandHandler("settings", get_settings)
+    about_handler = CommandHandler("about", about)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
 
     donate_handler = CommandHandler("donate", donate)
@@ -543,6 +570,7 @@ def main():
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(help_handler)
     dispatcher.add_handler(settings_handler)
+    dispatcher.add_handler(about_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
