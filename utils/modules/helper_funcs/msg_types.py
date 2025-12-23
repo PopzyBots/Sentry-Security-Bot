@@ -85,17 +85,29 @@ def get_welcome_type(msg: Message):
     content = None
     text = ""
 
-    args = msg.text.split(None, 1)  # use python's maxsplit to separate cmd and args
-
     buttons = []
     # determine what the contents of the filter are - text, image, sticker, etc
-    if len(args) >= 2:
-        offset = len(args[1]) - len(msg.text)
-        text, buttons = button_markdown_parser(args[1], entities=msg.parse_entities(), offset=offset)
-        if buttons:
-            data_type = Types.BUTTON_TEXT
+    # If this message is a command with arguments (e.g. `/setwelcome some text`),
+    # we want the part after the command. Otherwise treat the *whole* message as
+    # the welcome text (so we don't accidentally drop the first word).
+    if msg.text:
+        # command-style message -> parse arguments after the first token
+        if msg.text.startswith('/'):
+            args = msg.text.split(None, 1)  # use python's maxsplit to separate cmd and args
+            if len(args) >= 2:
+                offset = len(args[1]) - len(msg.text)
+                text, buttons = button_markdown_parser(args[1], entities=msg.parse_entities(), offset=offset)
+                if buttons:
+                    data_type = Types.BUTTON_TEXT
+                else:
+                    data_type = Types.TEXT
         else:
-            data_type = Types.TEXT
+            # non-command message -> use the full text as the welcome content
+            text, buttons = button_markdown_parser(msg.text, entities=msg.parse_entities(), offset=0)
+            if buttons:
+                data_type = Types.BUTTON_TEXT
+            else:
+                data_type = Types.TEXT
 
     elif msg.reply_to_message and msg.reply_to_message.sticker:
         content = msg.reply_to_message.sticker.file_id
