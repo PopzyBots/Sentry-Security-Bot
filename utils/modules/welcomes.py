@@ -365,7 +365,18 @@ def set_welcome(bot: Bot, update: Update):
     if not msg:
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
-    
+
+    # 🔑 IMPORTANT CHANGE
+    if msg.text or msg.caption:
+        text = msg.text or msg.caption
+        sql.set_custom_welcome(chat.id, text, sql.Types.TEXT, [])
+        update.effective_message.reply_text("Custom welcome message set!")
+        return (
+            f"<b>{html.escape(chat.title)}</b>\n"
+            f"#SET_WELCOME\n"
+            f"Admin: {mention_html(user.id, user.first_name)}"
+        )
+
     text, dtype, content, buttons = get_welcome_type(msg)
 
     if dtype is None:
