@@ -296,9 +296,27 @@ def welcome(bot: Bot, update: Update, args: List[str]):
             buttons = sql.get_welc_buttons(chat.id)
             keyboard = InlineKeyboardMarkup(build_keyboard(buttons))
 
+            # Prepare a readable preview: undo bracket escapes added by the markdown parser
+            # and attempt to substitute placeholders with sample values so admins can see the final look.
+            preview_msg = welcome_msg.replace("\\[", "[").replace("\\]", "]")
+            try:
+                preview_msg = preview_msg.format(
+                    first="Test",
+                    last="User",
+                    fullname="Test User",
+                    username="@testuser",
+                    mention="TestUser",
+                    count=chat.get_members_count(),
+                    chatname=html.escape(chat.title),
+                    id=123456789,
+                )
+            except Exception:
+                # If formatting fails (unexpected braces), fall back to the raw preview_msg
+                pass
+
             send(
                 update,
-                welcome_msg,
+                preview_msg,
                 keyboard,
                 sql.DEFAULT_WELCOME,
             )
