@@ -12,11 +12,8 @@ from utils import dispatcher, OWNER_ID, LOGGER
 from utils.modules.helper_funcs.chat_status import user_admin, can_delete
 from utils.modules.helper_funcs.misc import build_keyboard, revert_buttons
 from utils.modules.helper_funcs.msg_types import get_welcome_type
-from utils.modules.helper_funcs.string_handling import markdown_parser, \
-    escape_invalid_curly_brackets
+from utils.modules.helper_funcs.string_handling import markdown_parser
 from utils.modules.log_channel import loggable
-
-VALID_WELCOME_FORMATTERS = ['first', 'last', 'fullname', 'username', 'id', 'count', 'chatname', 'mention']
 
 ENUM_FUNC_MAP = {
     sql.Types.TEXT: dispatcher.bot.send_message,
@@ -243,7 +240,6 @@ def left_member(bot: Bot, update: Update):
                 else:
                     username = mention
 
-                valid_format = escape_invalid_curly_brackets(cust_goodbye, VALID_WELCOME_FORMATTERS)
                 res = valid_format.format(first=escape_markdown(first_name),
                                           last=escape_markdown(left_mem.last_name or first_name),
                                           fullname=escape_markdown(fullname), username=username, mention=mention,
