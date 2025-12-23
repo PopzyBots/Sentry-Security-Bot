@@ -79,6 +79,20 @@ def send(update, message, keyboard, backup_message):
             LOGGER.warning(message)
             LOGGER.warning(keyboard)
             LOGGER.exception("Could not parse! got invalid url host errors")
+        elif excp.message and excp.message.startswith("Can't parse entities"):
+            # Likely caused by malformed HTML in the welcome (bad tags / entities).
+            LOGGER.warning("Failed to send welcome due to malformed HTML entities. Attempting to send escaped text.")
+            try:
+                # Send escaped message so the bot doesn't error out; this will show tags literally.
+                msg = update.effective_message.reply_text(html.escape(message),
+                                                          parse_mode=ParseMode.HTML,
+                                                          reply_markup=keyboard)
+            except BadRequest:
+                # If that also fails, fallback to a simple notice with the backup message.
+                msg = update.effective_message.reply_text(backup_message +
+                                                          "\nNote: The current message contains invalid formatting and could not be sent.",
+                                                          parse_mode=ParseMode.HTML)
+            LOGGER.exception("Telegram BadRequest while sending welcome (malformed HTML entities).")
         else:
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: An error occured when sending the "
@@ -384,6 +398,14 @@ def set_welcome(bot: Bot, update: Update):
     )
 
     update.effective_message.reply_text("Custom welcome message set!")
+
+    # If the reply text contained raw '<' characters and we didn't extract HTML 'content', warn the admin
+    # This often causes Telegram "Can't parse entities" errors when sending formatted HTML messages.
+    if not content and reply and reply.text and "<" in reply.text:
+        update.effective_message.reply_text(
+            "⚠️ Notice: your welcome contains raw '<' characters which may cause Telegram parse errors when rendered. "
+            "If you intended formatting, use Telegram's formatting UI (select text → Bold/Code) and reply again with /setwelcome."
+        )
 
     return (
         f"<b>{html.escape(chat.title)}</b>\n"
