@@ -353,8 +353,8 @@ def start(bot: Bot, update: Update, args: List[str]):
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
                 [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
-                # Use a callback for About so it edits the existing message in-place instead of triggering a /start deep link
-                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about_cb")]
+                # Use callbacks for Help and About to edit the existing message in-place instead of deep-linking
+                [InlineKeyboardButton(text="Help", callback_data="help_cb"), InlineKeyboardButton(text="About", callback_data="about_cb")]
             ])
 
             if PM_START_PHOTO_ID:
@@ -710,6 +710,45 @@ def about_callback(bot: Bot, update: Update):
 
 
 @run_async
+def help_cb(bot: Bot, update: Update):
+    """Callback handler for pressing Help on the start message (edits start -> help in-place)."""
+    query = update.callback_query
+    chat_id = query.message.chat.id
+
+    help_text = HELP_STRINGS
+    keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+
+    info = LAST_PM_MESSAGE.get(chat_id)
+    if info:
+        # Save original if not already saved
+        if 'orig_saved' not in info:
+            info['orig_saved'] = True
+            info['orig_is_photo'] = info['is_photo']
+            info['orig_photo_id'] = info.get('photo_id')
+            info['orig_text'] = info.get('text')
+
+        try:
+            if info['is_photo']:
+                # edit caption
+                bot.edit_message_caption(chat_id=chat_id, message_id=info['message_id'], caption=help_text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+            else:
+                bot.edit_message_text(chat_id=chat_id, message_id=info['message_id'], text=help_text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+
+            info['is_help'] = True
+            info['text'] = help_text
+            _save_last_pm()
+            bot.answer_callback_query(query.id)
+            return
+        except BadRequest:
+            # fallback to sending a new help message
+            pass
+
+    # fallback: send normal help message (send_help will persist it)
+    send_help(chat_id, help_text)
+    bot.answer_callback_query(query.id)
+
+
+@run_async
 def about_back(bot: Bot, update: Update):
     """Callback query handler to replace the about message with the welcome/start text."""
     query = update.callback_query
@@ -723,7 +762,7 @@ def about_back(bot: Bot, update: Update):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(text="➕ Add me to a Group ➕", url=f"t.me/{bot.username}?startgroup=true")],
         [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url=f"t.me/{bot.username}?start=settings")],
-        [InlineKeyboardButton(text="Help", url=f"t.me/{bot.username}?start=help"), InlineKeyboardButton(text="About", url=f"t.me/{bot.username}?start=about")]
+        [InlineKeyboardButton(text="Help", callback_data="help_cb"), InlineKeyboardButton(text="About", callback_data="about_cb")]
     ])
 
     try:
@@ -960,6 +999,7 @@ def main():
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
     about_callback_handler = CallbackQueryHandler(about_back, pattern=r"about_back")
     about_inline_handler = CallbackQueryHandler(about_callback, pattern=r"about_cb")
+    help_inline_handler = CallbackQueryHandler(help_cb, pattern=r"help_cb")
 
     donate_handler = CommandHandler("donate", donate)
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
@@ -973,6 +1013,7 @@ def main():
     dispatcher.add_handler(about_handler)
     dispatcher.add_handler(about_callback_handler)
     dispatcher.add_handler(about_inline_handler)
+    dispatcher.add_handler(help_inline_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
