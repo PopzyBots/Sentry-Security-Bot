@@ -72,6 +72,8 @@ Quick usage guide for *{}* — how to use this bot 📘
 - /genid store (reply to photo): Store a photo file_id to use for the PM start image (owner only).
 - /genid clear: Clear the stored PM start photo id (owner only).
 - /donate: Information on donating to the project's creator.
+
+For module-specific help, use `/help <module>` (e.g. `/help welcomes`).
 """.format(dispatcher.bot.first_name)
 
 DONATE_STRING = """Heya, glad to hear you want to donate!
@@ -292,7 +294,8 @@ def start(bot: Bot, update: Update, args: List[str]):
 
             elif args[0].lower() == "settings":
                 # Show detailed help/settings content in PM (maps to previous help text)
-                send_help(update.effective_chat.id, SETTINGS_STRINGS)
+                # Provide the settings pagination keyboard rather than the Help back-button keyboard
+                send_help(update.effective_chat.id, SETTINGS_STRINGS, InlineKeyboardMarkup(paginate_modules(0, CHAT_SETTINGS, "stngs", chat=update.effective_chat.id)))
 
             elif args[0].lower().startswith("stngs_"):
                 match = re.match("stngs_(.*)", args[0].lower())
@@ -983,7 +986,8 @@ def get_settings(bot: Bot, update: Update):
 
     else:
         # In PM, show the detailed settings/help content (matches previous help output)
-        send_help(chat.id, SETTINGS_STRINGS)
+        # Provide the settings pagination keyboard so users can navigate modules
+        send_help(chat.id, SETTINGS_STRINGS, InlineKeyboardMarkup(paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat.id)))
 
 
 @run_async
