@@ -48,36 +48,36 @@ ENUM_FUNC_MAP = {
 # do not async
 def send(update, message, keyboard, backup_message):
     try:
-        msg = update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+        msg = update.effective_message.reply_text(message, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except IndexError:
         msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                   "\nNote: the current message was "
                                                                   "invalid due to markdown issues. Could be "
                                                                   "due to the user's name."),
-                                                  parse_mode=ParseMode.MARKDOWN)
+                                                  parse_mode=ParseMode.HTML)
     except KeyError:
         msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                   "\nNote: the current message is "
                                                                   "invalid due to an issue with some misplaced "
                                                                   "curly brackets. Please update"),
-                                                  parse_mode=ParseMode.MARKDOWN)
+                                                  parse_mode=ParseMode.HTML)
     except BadRequest as excp:
         if excp.message == "Button_url_invalid":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has an invalid url "
                                                                       "in one of its buttons. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
         elif excp.message == "Unsupported url protocol":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has buttons which "
                                                                       "use url protocols that are unsupported by "
                                                                       "telegram. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
         elif excp.message == "Wrong url host":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has some bad urls. "
                                                                       "Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
             LOGGER.warning(message)
             LOGGER.warning(keyboard)
             LOGGER.exception("Could not parse! got invalid url host errors")
@@ -85,7 +85,7 @@ def send(update, message, keyboard, backup_message):
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: An error occured when sending the "
                                                                       "custom message. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
             LOGGER.exception()
 
     return msg
@@ -174,11 +174,18 @@ def new_member(bot: Bot, update: Update):
                     else:
                         username = mention
 
+                    cust_welcome = cust_welcome.lower()
                     valid_format = escape_invalid_curly_brackets(cust_welcome, VALID_WELCOME_FORMATTERS)
-                    res = valid_format.format(first=escape_markdown(first_name),
-                                              last=escape_markdown(new_mem.last_name or first_name),
-                                              fullname=escape_markdown(fullname), username=username, mention=mention,
-                                              count=count, chatname=escape_markdown(chat.title), id=new_mem.id)
+                    res = valid_format.format(
+                        first=html.escape(first_name),
+                        last=html.escape(new_mem.last_name or first_name),
+                        fullname=html.escape(fullname),
+                        username=username,
+                        mention=mention_html(new_mem.id, first_name),
+                        count=count,
+                        chatname=html.escape(chat.title),
+                        id=new_mem.id,
+                    )
                     buttons = sql.get_welc_buttons(chat.id)
                     keyb = build_keyboard(buttons)
                 else:
