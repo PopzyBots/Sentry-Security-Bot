@@ -364,7 +364,7 @@ def set_welcome(bot: Bot, update: Update):
         )
         return ""
 
-    # 🔥 IMPORTANT: use raw HTML, not markdown
+    # ✅ Use raw HTML
     raw_text = msg.text_html or msg.caption_html
     if not raw_text:
         update.effective_message.reply_text(
@@ -372,15 +372,14 @@ def set_welcome(bot: Bot, update: Update):
         )
         return ""
 
-    # 🚫 DO NOT run markdown parser
-    # 🚫 DO NOT escape markdown
-    # 🚫 DO NOT revert buttons here
+    # ✅ Extract buttons WITHOUT touching HTML
+    clean_text, buttons = revert_buttons(raw_text)
 
     sql.set_custom_welcome(
         chat.id,
-        raw_text,
-        sql.Types.TEXT,
-        [],
+        clean_text,
+        sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
+        buttons,
     )
 
     update.effective_message.reply_text("Custom welcome message set!")
