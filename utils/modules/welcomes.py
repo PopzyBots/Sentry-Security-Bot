@@ -10,7 +10,7 @@ from telegram.utils.helpers import mention_markdown, mention_html, escape_markdo
 import utils.modules.sql.welcome_sql as sql
 from utils import dispatcher, OWNER_ID, LOGGER
 from utils.modules.helper_funcs.chat_status import user_admin, can_delete
-from utils.modules.helper_funcs.misc import build_keyboard
+from utils.modules.helper_funcs.misc import build_keyboard, revert_buttons
 from utils.modules.helper_funcs.msg_types import get_welcome_type
 from utils.modules.helper_funcs.string_handling import markdown_parser
 from utils.modules.log_channel import loggable
