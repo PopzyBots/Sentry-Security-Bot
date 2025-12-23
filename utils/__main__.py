@@ -140,11 +140,11 @@ def genid(bot: Bot, update: Update, args: List[str]):
     - Use `/genid clear` to remove the stored PM start photo id (owner only).
     - Send /genid while sending a photo (photo present in the same message) with `store` to save it.
     """
+    # Declare global before any use/assignment in this function to avoid SyntaxError
+    global PM_START_PHOTO_ID
+
     msg = update.effective_message  # type: Optional[Message]
     user = update.effective_user  # type: Optional[User]
-
-    # ensure we declare globals before any assignment in this function
-    global PM_START_PHOTO_ID
 
     # parse optional command argument (e.g., store, clear)
     cmd = args[0].lower() if args else None
@@ -158,13 +158,11 @@ def genid(bot: Bot, update: Update, args: List[str]):
             path = os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt")
             if os.path.exists(path):
                 os.remove(path)
-                global PM_START_PHOTO_ID
                 PM_START_PHOTO_ID = ""
                 update.effective_message.reply_text("Stored PM start photo id cleared and will no longer be used.")
                 LOGGER.info("PM start photo id cleared via /genid by owner %s", user.id)
             else:
                 # If file doesn't exist, still unset the in-memory id
-                global PM_START_PHOTO_ID
                 PM_START_PHOTO_ID = ""
                 update.effective_message.reply_text("No stored PM start photo id found; in-memory id (if any) has been cleared.")
                 LOGGER.info("/genid clear called but no stored file found; in-memory id cleared by owner %s", user.id)
@@ -204,7 +202,6 @@ def genid(bot: Bot, update: Update, args: List[str]):
         # Persist to disk so it survives restarts (optional helper for admins).
         with open(os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt"), "w", encoding="utf-8") as f:
             f.write(file_id)
-        global PM_START_PHOTO_ID
         PM_START_PHOTO_ID = file_id
         update.effective_message.reply_text("File id stored and will be used for the PM start message.")
         LOGGER.info("PM start photo id updated via /genid by owner %s", user.id)
