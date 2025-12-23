@@ -368,9 +368,19 @@ def set_welcome(bot: Bot, update: Update):
 
     # 🔑 IMPORTANT CHANGE
     if msg.text or msg.caption:
-        text = msg.text or msg.caption
-        sql.set_custom_welcome(chat.id, text, sql.Types.TEXT, [])
-        update.effective_message.reply_text("Custom welcome message set!")
+        raw_text = msg.text or msg.caption
+        
+        # 🔑 extract buttons WITHOUT touching text formatting
+        clean_text, buttons = revert_buttons(raw_text)
+        
+        sql.set_custom_welcome(
+            chat.id,
+            clean_text,
+            sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
+            buttons,
+        )
+
+       update.effective_message.reply_text("Custom welcome message set!")
         return (
             f"<b>{html.escape(chat.title)}</b>\n"
             f"#SET_WELCOME\n"
