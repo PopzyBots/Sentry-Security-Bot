@@ -197,6 +197,11 @@ def new_member(bot: Bot, update: Update):
                         id=new_mem.id,
                     )
 
+                    # Some parsers escape '[' and ']' as '\[' '\]' which causes a literal backslash to
+                    # appear in sent messages (e.g., "Hello Nibin \[6448...] "). Undo those escapes
+                    # so placeholders like `[{id}]` render as expected.
+                    res = res.replace("\\[", "[").replace("\\]", "]")
+
                     buttons = sql.get_welc_buttons(chat.id)
                     keyb = build_keyboard(buttons)
                 else:
