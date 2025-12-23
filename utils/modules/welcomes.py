@@ -260,10 +260,35 @@ def welcome(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat
 
     if not args:
-        pref, msg, _ = sql.get_welc_pref(chat.id)
+        pref, welcome_msg, welcome_type = sql.get_welc_pref(chat.id)
+    
+        if not pref:
+            update.effective_message.reply_text(
+                "Welcome messages are currently *disabled*.",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return
+    
         update.effective_message.reply_text(
-            f"Welcome messages are set to `{pref}`.",
+            "Welcome messages are currently *enabled*.\n"
+            "*Current welcome message:*",
             parse_mode=ParseMode.MARKDOWN,
+        )
+    
+        # Media welcome
+        if welcome_type != sql.Types.TEXT and welcome_type != sql.Types.BUTTON_TEXT:
+            ENUM_FUNC_MAP[welcome_type](chat.id, welcome_msg)
+            return
+    
+        # Text welcome
+        buttons = sql.get_welc_buttons(chat.id)
+        keyboard = InlineKeyboardMarkup(build_keyboard(buttons))
+    
+        send(
+            update,
+            welcome_msg,
+            keyboard,
+            sql.DEFAULT_WELCOME,
         )
         return
 
