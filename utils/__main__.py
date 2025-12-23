@@ -24,6 +24,12 @@ PM_START_TEXT = """
 <i>I keep chats clean, safe, and fully under control 🛡️</i>
 """
 
+# Optional: set PM_START_PHOTO_ID to a Telegram file_id to send a photo with the PM start message.
+# Example: PM_ST"""ART_PHOTO_ID = "AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E"
+# You can also set this via environment variable PM_START_PHOTO_ID.
+import os
+PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
+
 HELP_STRINGS = """
 Hey! My name is *{}*. I am a group management bot, here to help you get around and keep the order in your groups!
 I have lots of handy features, such as flood control, a warning system, a note keeping system, and even predetermined replies on certain keywords.
@@ -149,12 +155,31 @@ def start(bot: Bot, update: Update, args: List[str]):
                 [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", url="t.me/{}?start=about".format(bot.username))]
             ])
 
-            update.effective_message.reply_text(
-                start_text,
-                parse_mode=ParseMode.HTML,
-                disable_web_page_preview=True,
-                reply_markup=keyboard,
-            )
+            if PM_START_PHOTO_ID:
+                # Send cached Telegram file_id (fast) as photo with caption
+                try:
+                    update.effective_message.reply_photo(
+                        photo=PM_START_PHOTO_ID,
+                        caption=start_text,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=keyboard,
+                        disable_notification=False,
+                    )
+                except BadRequest:
+                    # Fallback to text reply if file_id invalid or fails for any reason
+                    update.effective_message.reply_text(
+                        start_text,
+                        parse_mode=ParseMode.HTML,
+                        disable_web_page_preview=True,
+                        reply_markup=keyboard,
+                    )
+            else:
+                update.effective_message.reply_text(
+                    start_text,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                    reply_markup=keyboard,
+                )
     else:
         update.effective_message.reply_text("Hello all Join @ProIndians.")
 
