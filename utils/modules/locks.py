@@ -54,9 +54,20 @@ class CustomCommandHandler(tg.CommandHandler):
         super().__init__(command, callback, **kwargs)
 
     def check_update(self, update):
-        return super().check_update(update) and not (
-                sql.is_restr_locked(update.effective_chat.id, 'messages') and not is_user_admin(update.effective_chat,
-                                                                                                update.effective_user.id))
+        result = super().check_update(update)
+    
+        if not result:
+            return False
+    
+        # If messages are locked and user is not admin → block command
+        if (
+            sql.is_restr_locked(update.effective_chat.id, 'messages')
+            and not is_user_admin(update.effective_chat,
+                                  update.effective_user.id)
+        ):
+            return False
+    
+        return result
 
 
 tg.CommandHandler = CustomCommandHandler
