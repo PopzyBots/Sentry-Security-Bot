@@ -4,7 +4,7 @@ import html
 from typing import Optional, List
 
 from telegram import Message, Chat, Update, Bot, User
-from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.error import Unauthorized, BadRequest, TimedOut, NetworkError, ChatMigrated, TelegramError
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackQueryHandler
 from telegram.ext.dispatcher import run_async, DispatcherHandlerStop
@@ -400,7 +400,11 @@ def get_help(bot: Bot, update: Update):
 
 @run_async
 def about(bot: Bot, update: Update):
-    """Send an informative about message including name, purpose and features."""
+    """Send an informative about message including name, purpose and features.
+
+    The message includes a 'Back' inline button that will replace the about message with
+    the original welcome (start) message when pressed.
+    """
     bot_name = html.escape(bot.first_name)
     about_lines = [
         f"<b>About {bot_name}</b>",
@@ -415,7 +419,52 @@ def about(bot: Bot, update: Update):
         "\nUse <b>/help</b> for usage instructions or <b>/settings</b> to see configuration options."
     ]
     about_text = "\n".join(about_lines)
-    update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text="Back", callback_data="about_back")]
+    ])
+
+    # If invoked via callback or command, reply with an about message that has a Back button
+    update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True, reply_markup=keyboard)
+
+
+@run_async
+def about_back(bot: Bot, update: Update):
+    """Callback query handler to replace the about message with the welcome/start text."""
+    query = update.callback_query
+    user = query.from_user
+
+    # Build the start text using the clicking user's first name
+    start_text = PM_START_TEXT.format(
+        first=html.escape(user.first_name),
+        botname=html.escape(bot.first_name),
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text="➕ Add me to a Group ➕", url=f"t.me/{bot.username}?startgroup=true")],
+        [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url=f"t.me/{bot.username}?start=settings")],
+        [InlineKeyboardButton(text="Help", url=f"t.me/{bot.username}?start=help"), InlineKeyboardButton(text="About", url=f"t.me/{bot.username}?start=about")]
+    ])
+
+    try:
+        # Try to edit the message into the photo version if we have a stored file_id
+        if PM_START_PHOTO_ID:
+            media = InputMediaPhoto(media=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML)
+            query.message.edit_media(media=media, reply_markup=keyboard)
+        else:
+            # No photo available, edit as text
+            query.message.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        bot.answer_callback_query(query.id)
+    except BadRequest:
+        # If edit fails (e.g., message is too old or media can't be edited), send a new start message instead
+        try:
+            if PM_START_PHOTO_ID:
+                query.message.reply_photo(photo=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                query.message.reply_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            bot.answer_callback_query(query.id)
+        except Exception:
+            LOGGER.exception("Failed to restore start message from about_back callback")
+            bot.answer_callback_query(query.id, text="Could not go back to the welcome message.")
 
 
 def send_settings(chat_id, user_id, user=False):
@@ -585,6 +634,7 @@ def main():
     settings_handler = CommandHandler("settings", get_settings)
     about_handler = CommandHandler("about", about)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
+    about_callback_handler = CallbackQueryHandler(about_back, pattern=r"about_back")
 
     donate_handler = CommandHandler("donate", donate)
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
@@ -596,6 +646,7 @@ def main():
     dispatcher.add_handler(help_handler)
     dispatcher.add_handler(settings_handler)
     dispatcher.add_handler(about_handler)
+    dispatcher.add_handler(about_callback_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
