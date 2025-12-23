@@ -173,10 +173,17 @@ for module_name in ALL_MODULES:
 def send_help(chat_id, text, keyboard=None):
     if not keyboard:
         keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
-    sent = dispatcher.bot.send_message(chat_id=chat_id,
-                                text=text,
-                                parse_mode=ParseMode.MARKDOWN,
-                                reply_markup=keyboard)
+    try:
+        sent = dispatcher.bot.send_message(chat_id=chat_id,
+                                    text=text,
+                                    parse_mode=ParseMode.MARKDOWN,
+                                    reply_markup=keyboard)
+    except BadRequest as excp:
+        # Handle malformed markup/entities by falling back to plain text (no parse_mode)
+        LOGGER.warning("send_help: BadRequest while sending help (will fallback to plain text): %s", excp)
+        LOGGER.debug("send_help: help text preview: %s", text[:400])
+        sent = dispatcher.bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True, reply_markup=keyboard)
+
     # Record this help message so we can edit it in-place later
     try:
         LAST_PM_MESSAGE[chat_id] = {
@@ -468,8 +475,11 @@ def help_button(bot: Bot, update: Update):
                 if excp.message == "Message is not modified":
                     bot.answer_callback_query(query.id)
                     return
+                LOGGER.warning("help_button: BadRequest while sending module help for %s: %s", module, excp)
+                LOGGER.debug("help_button: help text preview: %s", text[:400])
                 # fallback to sending a new message and deleting the old one
-                sent = query.message.reply_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                # Send without parse mode to avoid entity parse errors
+                sent = query.message.reply_text(text=text, reply_markup=keyboard)
                 try:
                     query.message.delete()
                 except Exception:
@@ -506,7 +516,8 @@ def help_button(bot: Bot, update: Update):
                 if excp.message == "Message is not modified":
                     bot.answer_callback_query(query.id)
                     return
-                sent = query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                # Send without parse mode to avoid entity parse errors
+                sent = query.message.reply_text(text, reply_markup=keyboard)
                 try:
                     query.message.delete()
                 except Exception:
@@ -543,7 +554,8 @@ def help_button(bot: Bot, update: Update):
                 if excp.message == "Message is not modified":
                     bot.answer_callback_query(query.id)
                     return
-                sent = query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                # Send without parse mode to avoid entity parse errors
+                sent = query.message.reply_text(text, reply_markup=keyboard)
                 try:
                     query.message.delete()
                 except Exception:
@@ -578,7 +590,8 @@ def help_button(bot: Bot, update: Update):
                 if excp.message == "Message is not modified":
                     bot.answer_callback_query(query.id)
                     return
-                sent = query.message.reply_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                # Send without parse mode to avoid entity parse errors
+                sent = query.message.reply_text(text=text, reply_markup=keyboard)
                 try:
                     query.message.delete()
                 except Exception:
@@ -602,6 +615,13 @@ def help_button(bot: Bot, update: Update):
         elif excp.message == "Message can't be deleted":
             pass
         else:
+            # Log additional context to aid in diagnosing malformed entity errors.
+            try:
+                preview = query.message.text or query.message.caption or ""
+            except Exception:
+                preview = ""
+            LOGGER.warning("help_button: unexpected BadRequest for query %s: %s", str(query.data), excp)
+            LOGGER.debug("help_button: message preview: %s", preview[:400])
             LOGGER.exception("Exception in help buttons. %s", str(query.data))
 
 
@@ -628,6 +648,24 @@ def get_help(bot: Bot, update: Update):
 
     else:
         send_help(chat.id, HELP_STRINGS)
+
+
+@run_async
+def pmstatus(bot: Bot, update: Update):
+    """Diagnostic command: show the saved LAST_PM_MESSAGE for this chat (use in PM)."""
+    chat = update.effective_chat
+    if chat.type != chat.PRIVATE:
+        update.effective_message.reply_text("Use /pmstatus in a private chat with the bot to inspect its saved PM state for your chat.")
+        return
+    info = LAST_PM_MESSAGE.get(chat.id)
+    if not info:
+        update.effective_message.reply_text("No saved PM message info for this chat.")
+        return
+    # Pretty-print the info, but hide possibly large photo_id
+    display = dict(info)
+    if 'photo_id' in display and display['photo_id']:
+        display['photo_id'] = display['photo_id'][:60] + '...'
+    update.effective_message.reply_text("LAST_PM_MESSAGE:\n" + json.dumps(display, ensure_ascii=False, indent=2))
 
 
 @run_async
@@ -1001,6 +1039,9 @@ def main():
     about_inline_handler = CallbackQueryHandler(about_callback, pattern=r"about_cb")
     help_inline_handler = CallbackQueryHandler(help_cb, pattern=r"help_cb")
 
+    # diagnostic commands
+    pmstatus_handler = CommandHandler("pmstatus", pmstatus)
+
     donate_handler = CommandHandler("donate", donate)
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
 
@@ -1016,6 +1057,7 @@ def main():
     dispatcher.add_handler(help_inline_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
+    dispatcher.add_handler(pmstatus_handler)
     dispatcher.add_handler(migrate_handler)
     dispatcher.add_handler(donate_handler)
 
