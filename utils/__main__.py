@@ -24,10 +24,25 @@ PM_START_TEXT = """
 <i>I keep chats clean, safe, and fully under control 🛡️</i>
 """
 
-# PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
-# Example: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
+# PM_START_PHOTO_ID is read from disk (if stored via /genid store) or from the environment.
+# If a file `pm_start_photo_id.txt` exists in this package, its contents will override the environment variable.
+# Example env var: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
 import os
 PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
+
+# Load stored file id (if previously saved via `/genid store`) so it persists across restarts
+try:
+    _pm_path = os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt")
+    if os.path.exists(_pm_path):
+        with open(_pm_path, "r", encoding="utf-8") as _f:
+            _file_id = _f.read().strip()
+            if _file_id:
+                PM_START_PHOTO_ID = _file_id
+                LOGGER.info("Loaded PM_START_PHOTO_ID from pm_start_photo_id.txt")
+            else:
+                LOGGER.info("Found pm_start_photo_id.txt but it was empty; using environment variable (if any)")
+except Exception:
+    LOGGER.exception("Failed to load pm_start_photo_id.txt; continuing with environment value")
 
 # Note: bundled sample image, automatic upload and caching have been removed. Use /genid store to manually set the file id.
 
