@@ -22,10 +22,6 @@ PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
 
 <i>I keep chats clean, safe, and fully under control 🛡️</i>
-
-[➕ Add me to a Group ➕]
-[⚙️ Manage Group Settings ✍️]
-[Help][About]
 """
 
 HELP_STRINGS = """
