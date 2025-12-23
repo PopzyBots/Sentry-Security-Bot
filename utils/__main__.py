@@ -172,7 +172,7 @@ for module_name in ALL_MODULES:
 # do not async
 def send_help(chat_id, text, keyboard=None):
     if not keyboard:
-        keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
     try:
         sent = dispatcher.bot.send_message(chat_id=chat_id,
                                     text=text,
@@ -456,7 +456,7 @@ def help_button(bot: Bot, update: Update):
             module = mod_match.group(1)
             text = "Here is the help for the *{}* module:\n".format(HELPABLE[module].__mod_name__) \
                    + HELPABLE[module].__help__
-            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="help_back")]])
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
 
             # Try to edit in-place
             try:
@@ -498,7 +498,8 @@ def help_button(bot: Bot, update: Update):
         elif prev_match:
             curr_page = int(prev_match.group(1))
             text = HELP_STRINGS
-            keyboard = InlineKeyboardMarkup(paginate_modules(curr_page - 1, HELPABLE, "help"))
+            # Only provide a single Back button (restores welcome/start)
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
 
             try:
                 query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
@@ -536,7 +537,8 @@ def help_button(bot: Bot, update: Update):
         elif next_match:
             next_page = int(next_match.group(1))
             text = HELP_STRINGS
-            keyboard = InlineKeyboardMarkup(paginate_modules(next_page + 1, HELPABLE, "help"))
+            # Only provide a single Back button (restores welcome/start)
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
 
             try:
                 query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
@@ -573,7 +575,8 @@ def help_button(bot: Bot, update: Update):
 
         elif back_match:
             text = HELP_STRINGS
-            keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+            # Only provide a single Back button (restores welcome/start)
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
             try:
                 query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
                 LAST_PM_MESSAGE[query.message.chat.id] = {
@@ -644,7 +647,8 @@ def get_help(bot: Bot, update: Update):
         module = args[1].lower()
         text = "Here is the available help for the *{}* module:\n".format(HELPABLE[module].__mod_name__) \
                + HELPABLE[module].__help__
-        send_help(chat.id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="help_back")]]))
+        # Only provide a single Back button (restores welcome/start)
+        send_help(chat.id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]]))
 
     else:
         send_help(chat.id, HELP_STRINGS)
@@ -754,7 +758,8 @@ def help_cb(bot: Bot, update: Update):
     chat_id = query.message.chat.id
 
     help_text = HELP_STRINGS
-    keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+    # Only provide a single Back button (restores welcome/start)
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
 
     info = LAST_PM_MESSAGE.get(chat_id)
     if info:
