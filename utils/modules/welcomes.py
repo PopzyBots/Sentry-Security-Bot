@@ -48,33 +48,33 @@ def send(update, message, keyboard, backup_message):
     try:
         msg = update.effective_message.reply_text(message, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except IndexError:
-        msg = update.effective_message.reply_text(markdown_parser(backup_message +
+        msg = update.effective_message.reply_text(backup_message +
                                                                   "\nNote: the current message was "
                                                                   "invalid due to markdown issues. Could be "
-                                                                  "due to the user's name."),
+                                                                  "due to the user's name.",
                                                   parse_mode=ParseMode.HTML)
     except KeyError:
-        msg = update.effective_message.reply_text(markdown_parser(backup_message +
+        msg = update.effective_message.reply_text(backup_message +
                                                                   "\nNote: the current message is "
                                                                   "invalid due to an issue with some misplaced "
-                                                                  "curly brackets. Please update"),
+                                                                  "curly brackets. Please update",
                                                   parse_mode=ParseMode.HTML)
     except BadRequest as excp:
         if excp.message == "Button_url_invalid":
-            msg = update.effective_message.reply_text(markdown_parser(backup_message +
+            msg = update.effective_message.reply_text(backup_message +
                                                                       "\nNote: the current message has an invalid url "
-                                                                      "in one of its buttons. Please update."),
+                                                                      "in one of its buttons. Please update.",
                                                       parse_mode=ParseMode.HTML)
         elif excp.message == "Unsupported url protocol":
-            msg = update.effective_message.reply_text(markdown_parser(backup_message +
+            msg = update.effective_message.reply_text(backup_message +
                                                                       "\nNote: the current message has buttons which "
                                                                       "use url protocols that are unsupported by "
-                                                                      "telegram. Please update."),
+                                                                      "telegram. Please update.",
                                                       parse_mode=ParseMode.HTML)
         elif excp.message == "Wrong url host":
-            msg = update.effective_message.reply_text(markdown_parser(backup_message +
+            msg = update.effective_message.reply_text(backup_message +
                                                                       "\nNote: the current message has some bad urls. "
-                                                                      "Please update."),
+                                                                      "Please update.",
                                                       parse_mode=ParseMode.HTML)
             LOGGER.warning(message)
             LOGGER.warning(keyboard)
