@@ -21,7 +21,7 @@ from utils.modules.helper_funcs.misc import paginate_modules
 PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
 
-<i>I keep chats clean, safe, and fully under control.</i>
+<i>I keep chats clean, safe, and fully under control 🛡️</i>
 """
 
 # PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
@@ -120,12 +120,39 @@ def genid(bot: Bot, update: Update, args: List[str]):
     """Generate a Telegram file_id for a photo.
 
     Usage:
-    - Reply to a photo with /genid to receive its file_id.
-    - Send /genid while sending a photo (photo present in the same message).
-    - Optionally add `store`/`save` as the first argument to persist this id as the PM start photo (owner only).
+    - Reply to a photo with `/genid store` to save its file_id as the PM start photo (owner only).
+    - Use `/genid clear` to remove the stored PM start photo id (owner only).
+    - Send /genid while sending a photo (photo present in the same message) with `store` to save it.
     """
     msg = update.effective_message  # type: Optional[Message]
     user = update.effective_user  # type: Optional[User]
+
+    # parse optional command argument (e.g., store, clear)
+    cmd = args[0].lower() if args else None
+
+    # Handle clear/remove/delete commands (owner-only) even when no photo is present
+    if cmd and cmd in ("clear", "remove", "delete"):
+        if user.id != OWNER_ID:
+            update.effective_message.reply_text("Only the bot owner can clear the stored PM start photo id.")
+            return
+        try:
+            path = os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt")
+            if os.path.exists(path):
+                os.remove(path)
+                global PM_START_PHOTO_ID
+                PM_START_PHOTO_ID = ""
+                update.effective_message.reply_text("Stored PM start photo id cleared and will no longer be used.")
+                LOGGER.info("PM start photo id cleared via /genid by owner %s", user.id)
+            else:
+                # If file doesn't exist, still unset the in-memory id
+                global PM_START_PHOTO_ID
+                PM_START_PHOTO_ID = ""
+                update.effective_message.reply_text("No stored PM start photo id found; in-memory id (if any) has been cleared.")
+                LOGGER.info("/genid clear called but no stored file found; in-memory id cleared by owner %s", user.id)
+        except Exception:
+            LOGGER.exception("Failed to clear PM start photo id via /genid")
+            update.effective_message.reply_text("Failed to clear stored file id.")
+        return
 
     # try message itself first, then reply_to_message
     photo = None
@@ -134,17 +161,17 @@ def genid(bot: Bot, update: Update, args: List[str]):
     elif msg.reply_to_message and msg.reply_to_message.photo:
         photo = msg.reply_to_message.photo[-1]
 
-    if not photo:
+    # Only support storing the file id via: /genid store (owner only). Do not display file ids publicly.
+    if not (cmd and cmd in ("store", "save", "set")):
         update.effective_message.reply_text(
-            "Reply to a photo or send a photo with /genid to get its file_id."
+            "Usage: reply to the photo with `/genid store` to save it as the PM start photo (bot owner only), or `/genid clear` to remove the stored id.",
+            parse_mode=ParseMode.MARKDOWN,
         )
         return
 
-    # Only support storing the file id via: /genid store (owner only). Do not display file ids publicly.
-    if not (args and args[0].lower() in ("store", "save", "set")):
+    if not photo:
         update.effective_message.reply_text(
-            "Usage: reply to the photo with `/genid store` to save it as the PM start photo (bot owner only).",
-            parse_mode=ParseMode.MARKDOWN,
+            "Reply to a photo or send a photo with `/genid store` to save its file_id."
         )
         return
 
