@@ -10,7 +10,7 @@ from telegram.utils.helpers import mention_markdown, mention_html, escape_markdo
 import utils.modules.sql.welcome_sql as sql
 from utils import dispatcher, OWNER_ID, LOGGER
 from utils.modules.helper_funcs.chat_status import user_admin, can_delete
-from utils.modules.helper_funcs.misc import build_keyboard, revert_buttons
+from utils.modules.helper_funcs.misc import build_keyboard
 from utils.modules.helper_funcs.msg_types import get_welcome_type
 from utils.modules.helper_funcs.string_handling import markdown_parser
 from utils.modules.log_channel import loggable
@@ -357,50 +357,39 @@ def set_welcome(bot: Bot, update: Update):
     chat = update.effective_chat
     user = update.effective_user
 
+    # Must reply to a message
     msg = update.effective_message.reply_to_message
     if not msg:
-        update.effective_message.reply_text("Reply to text or media to set welcome.")
+        update.effective_message.reply_text(
+            "Reply to a text message to set the welcome."
+        )
         return ""
 
-    raw_text = msg.text or msg.caption
-    if not raw_text:
-        update.effective_message.reply_text("Reply to text or media to set welcome.")
+    # Use the canonical parser – DO NOT manually parse buttons
+    text, dtype, content, buttons = get_welcome_type(msg)
+
+    # Only allow text welcomes (with or without buttons)
+    if dtype not in (sql.Types.TEXT, sql.Types.BUTTON_TEXT):
+        update.effective_message.reply_text(
+            "Only text welcomes (with optional buttons) are supported."
+        )
         return ""
-    
-    clean_text, buttons = revert_buttons(raw_text)
-    
-    sql.set_custom_welcome(
-        chat.id,
-        clean_text,
-        sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
-        buttons,
-    )
-    
-    # 🔒 Force TEXT / BUTTON_TEXT only (prevents markdown corruption)
-    if buttons:
-        dtype = sql.Types.BUTTON_TEXT
-    else:
-        dtype = sql.Types.TEXT
-    
+
+    # Save exactly once
     sql.set_custom_welcome(
         chat.id,
         content or text,
         dtype,
         buttons,
     )
-    
+
     update.effective_message.reply_text("Custom welcome message set!")
-    
+
     return (
         f"<b>{html.escape(chat.title)}</b>\n"
         f"#SET_WELCOME\n"
         f"Admin: {mention_html(user.id, user.first_name)}"
     )
-
-    sql.set_custom_welcome(chat.id, content or text, dtype, buttons)
-    update.effective_message.reply_text("Custom welcome message set!")
-
-    return f"<b>{html.escape(chat.title)}</b>\n#SET_WELCOME\nAdmin: {mention_html(user.id, user.first_name)}"
 
 @run_async
 @user_admin
@@ -492,17 +481,17 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
 
 WELC_HELP_TXT = "Your group's welcome/goodbye messages can be personalised in multiple ways. If you want the messages" \
                 " to be individually generated, like the default welcome message is, you can use *these* variables:\n" \
-                " - `{{first}}`: this represents the user's *first* name\n" \
-                " - `{{last}}`: this represents the user's *last* name. Defaults to *first name* if user has no " \
+                " - `{first}`: this represents the user's *first* name\n" \
+                " - `{last}`: this represents the user's *last* name. Defaults to *first name* if user has no " \
                 "last name.\n" \
-                " - `{{fullname}}`: this represents the user's *full* name. Defaults to *first name* if user has no " \
+                " - `{fullname}`: this represents the user's *full* name. Defaults to *first name* if user has no " \
                 "last name.\n" \
-                " - `{{username}}`: this represents the user's *username*. Defaults to a *mention* of the user's " \
+                " - `{username}`: this represents the user's *username*. Defaults to a *mention* of the user's " \
                 "first name if has no username.\n" \
-                " - `{{mention}}`: this simply *mentions* a user - tagging them with their first name.\n" \
-                " - `{{id}}`: this represents the user's *id*\n" \
-                " - `{{count}}`: this represents the user's *member number*.\n" \
-                " - `{{chatname}}`: this represents the *current chat name*.\n" \
+                " - `{mention}`: this simply *mentions* a user - tagging them with their first name.\n" \
+                " - `{id}`: this represents the user's *id*\n" \
+                " - `{count}`: this represents the user's *member number*.\n" \
+                " - `{chatname}`: this represents the *current chat name*.\n" \
                 "\nEach variable MUST be surrounded by `{{}}` to be replaced.\n" \
                 "Welcome messages also support markdown, so you can make any elements bold/italic/code/links. " \
                 "Buttons are also supported, so you can make your welcomes look awesome with some nice intro " \
