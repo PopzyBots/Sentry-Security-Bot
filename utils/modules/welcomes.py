@@ -380,12 +380,12 @@ def set_welcome(bot: Bot, update: Update):
             buttons,
         )
 
-       update.effective_message.reply_text("Custom welcome message set!")
-        return (
-            f"<b>{html.escape(chat.title)}</b>\n"
-            f"#SET_WELCOME\n"
-            f"Admin: {mention_html(user.id, user.first_name)}"
-        )
+    update.effective_message.reply_text("Custom welcome message set!")
+    return (
+        f"<b>{html.escape(chat.title)}</b>\n"
+        f"#SET_WELCOME\n"
+        f"Admin: {mention_html(user.id, user.first_name)}"
+    )
 
     text, dtype, content, buttons = get_welcome_type(msg)
 
