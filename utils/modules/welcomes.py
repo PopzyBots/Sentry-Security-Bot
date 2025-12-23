@@ -47,6 +47,7 @@ ENUM_FUNC_MAP = {
 
 # do not async
 def send(update, message, keyboard, backup_message):
+    message = message.replace("<br>", "\n").replace("<br/>", "\n")
     try:
         msg = update.effective_message.reply_text(message, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except IndexError:
@@ -86,7 +87,7 @@ def send(update, message, keyboard, backup_message):
                                                                       "\nNote: An error occured when sending the "
                                                                       "custom message. Please update."),
                                                       parse_mode=ParseMode.HTML)
-            LOGGER.exception()
+            LOGGER.exception("Telegram BadRequest while sending welcome")
 
     return msg
 
@@ -174,7 +175,6 @@ def new_member(bot: Bot, update: Update):
                     else:
                         username = mention
 
-                    cust_welcome = cust_welcome.lower()
                     valid_format = escape_invalid_curly_brackets(cust_welcome, VALID_WELCOME_FORMATTERS)
                     res = valid_format.format(
                         first=html.escape(first_name),
@@ -260,54 +260,43 @@ def left_member(bot: Bot, update: Update):
             send(update, res, keyboard, sql.DEFAULT_GOODBYE)
             delete_join(bot, update)
 
-
 @run_async
 @user_admin
 def welcome(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat
 
     if not args:
-        pref, msg, _ = sql.get_welc_pref(chat.id)
+        enabled, welcome_msg, welcome_type = sql.get_welc_pref(chat.id)
 
-        if pref and msg:
-            send(
-                update,
-                msg,
-                InlineKeyboardMarkup(build_keyboard(sql.get_welc_buttons(chat.id))),
-                sql.DEFAULT_WELCOME
-            )
-        else:
-            update.effective_message.reply_text("Welcome messages are disabled.")
-
-    
-        if not pref:
+        if not enabled:
             update.effective_message.reply_text(
-                "Welcome messages are currently *disabled*.",
+                "Welcome messages are currently <b>disabled</b>.",
                 parse_mode=ParseMode.HTML,
             )
             return
-    
+
         update.effective_message.reply_text(
-            "Welcome messages are currently *enabled*.\n"
-            "*Current welcome message:*",
+            "Welcome messages are currently <b>enabled</b>.\n"
+            "<b>Current welcome message:</b>",
             parse_mode=ParseMode.HTML,
         )
-    
-        # Media welcome
-        if welcome_type != sql.Types.TEXT and welcome_type != sql.Types.BUTTON_TEXT:
-            ENUM_FUNC_MAP[welcome_type](chat.id, welcome_msg)
-            return
-    
-        # Text welcome
-        buttons = sql.get_welc_buttons(chat.id)
-        keyboard = InlineKeyboardMarkup(build_keyboard(buttons))
-    
-        send(
-            update,
-            welcome_msg,
-            keyboard,
-            sql.DEFAULT_WELCOME,
-        )
+
+        # Only preview text welcomes
+        if welcome_type in (sql.Types.TEXT, sql.Types.TEXT.value, sql.Types.BUTTON_TEXT, sql.Types.BUTTON_TEXT.value):
+            buttons = sql.get_welc_buttons(chat.id)
+            keyboard = InlineKeyboardMarkup(build_keyboard(buttons))
+
+            send(
+                update,
+                welcome_msg,
+                keyboard,
+                sql.DEFAULT_WELCOME,
+            )
+        else:
+            update.effective_message.reply_text(
+                "Current welcome message is a media type and cannot be previewed.",
+                parse_mode=ParseMode.HTML,
+            )
         return
 
     arg = args[0].lower()
@@ -318,7 +307,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
         sql.set_welc_preference(chat.id, False)
         update.effective_message.reply_text("Welcome messages disabled.")
     else:
-        update.effective_message.reply_text("Use `/welcome on` or `/welcome off`.")
+        update.effective_message.reply_text("Use /welcome on or /welcome off.")
 
 @run_async
 @user_admin
