@@ -357,28 +357,29 @@ def set_welcome(bot: Bot, update: Update):
     chat = update.effective_chat
     user = update.effective_user
 
-    msg = update.effective_message.reply_to_message
-    if not msg:
+    # Must reply to a message
+    reply = update.effective_message.reply_to_message
+    if not reply:
         update.effective_message.reply_text(
-            "Reply to a text message to set the welcome."
+            "Reply to a text message (with optional buttons) to set the welcome."
         )
         return ""
 
-    # ✅ Use raw HTML
-    raw_text = msg.text_html or msg.caption_html
-    if not raw_text:
+    # 🔑 Use the canonical parser — DO NOT touch the text manually
+    text, dtype, content, buttons = get_welcome_type(reply)
+
+    # Only allow text welcomes (with or without buttons)
+    if dtype not in (sql.Types.TEXT, sql.Types.BUTTON_TEXT):
         update.effective_message.reply_text(
-            "Only text welcomes are supported."
+            "Only text welcomes (with optional buttons) are supported."
         )
         return ""
 
-    # ✅ Extract buttons WITHOUT touching HTML
-    clean_text, buttons = revert_buttons(raw_text)
-
+    # 🔒 Save exactly what the parser returns (NO re-parsing, NO revert_buttons)
     sql.set_custom_welcome(
         chat.id,
-        clean_text,
-        sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
+        content or text,  # content is HTML-safe when present
+        dtype,
         buttons,
     )
 
