@@ -175,8 +175,7 @@ def new_member(bot: Bot, update: Update):
                     else:
                         username = mention
 
-                    valid_format = escape_invalid_curly_brackets(cust_welcome, VALID_WELCOME_FORMATTERS)
-                    res = valid_format.format(
+                    res = cust_welcome.format(
                         first=html.escape(first_name),
                         last=html.escape(new_mem.last_name or first_name),
                         fullname=html.escape(fullname),
@@ -186,6 +185,7 @@ def new_member(bot: Bot, update: Update):
                         chatname=html.escape(chat.title),
                         id=new_mem.id,
                     )
+
                     buttons = sql.get_welc_buttons(chat.id)
                     keyb = build_keyboard(buttons)
                 else:
