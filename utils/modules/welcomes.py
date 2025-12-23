@@ -19,14 +19,29 @@ from utils.modules.log_channel import loggable
 VALID_WELCOME_FORMATTERS = ['first', 'last', 'fullname', 'username', 'id', 'count', 'chatname', 'mention']
 
 ENUM_FUNC_MAP = {
+    sql.Types.TEXT: dispatcher.bot.send_message,
     sql.Types.TEXT.value: dispatcher.bot.send_message,
+
+    sql.Types.BUTTON_TEXT: dispatcher.bot.send_message,
     sql.Types.BUTTON_TEXT.value: dispatcher.bot.send_message,
+
+    sql.Types.STICKER: dispatcher.bot.send_sticker,
     sql.Types.STICKER.value: dispatcher.bot.send_sticker,
+
+    sql.Types.DOCUMENT: dispatcher.bot.send_document,
     sql.Types.DOCUMENT.value: dispatcher.bot.send_document,
+
+    sql.Types.PHOTO: dispatcher.bot.send_photo,
     sql.Types.PHOTO.value: dispatcher.bot.send_photo,
+
+    sql.Types.AUDIO: dispatcher.bot.send_audio,
     sql.Types.AUDIO.value: dispatcher.bot.send_audio,
+
+    sql.Types.VOICE: dispatcher.bot.send_voice,
     sql.Types.VOICE.value: dispatcher.bot.send_voice,
-    sql.Types.VIDEO.value: dispatcher.bot.send_video
+
+    sql.Types.VIDEO: dispatcher.bot.send_video,
+    sql.Types.VIDEO.value: dispatcher.bot.send_video,
 }
 
 
@@ -116,11 +131,10 @@ def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
 @run_async
 def delete_join(bot: Bot, update: Update):
     chat = update.effective_chat  # type: Optional[Chat]
-    join = update.effective_message.new_chat_members
     if can_delete(chat, bot.id):
         del_join = sql.get_del_pref(chat.id)
         if del_join:
-            update.message.delete()
+            update.effective_message.delete()
 
 @run_async
 def new_member(bot: Bot, update: Update):
@@ -308,7 +322,6 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
             # idek what you're writing, say yes or no
             update.effective_message.reply_text("I understand 'on/yes' or 'off/no' only!")
 
-
 @run_async
 @user_admin
 @loggable
@@ -339,7 +352,6 @@ def reset_welcome(bot: Bot, update: Update) -> str:
            "\n<b>Admin:</b> {}" \
            "\nReset the welcome message to default.".format(html.escape(chat.title),
                                                             mention_html(user.id, user.first_name))
-
 
 @run_async
 @user_admin
@@ -505,10 +517,10 @@ WELCOME_HELP = CommandHandler("welcomehelp", welcome_help)
 dispatcher.add_handler(NEW_MEM_HANDLER)
 dispatcher.add_handler(LEFT_MEM_HANDLER)
 dispatcher.add_handler(WELC_PREF_HANDLER)
-dispatcher.add_handler(GOODBYE_PREF_HANDLER)
 dispatcher.add_handler(SET_WELCOME)
-dispatcher.add_handler(SET_GOODBYE)    
 dispatcher.add_handler(RESET_WELCOME)
+dispatcher.add_handler(GOODBYE_PREF_HANDLER)
+dispatcher.add_handler(SET_GOODBYE)    
 dispatcher.add_handler(RESET_GOODBYE)
 dispatcher.add_handler(CLEAN_WELCOME)
 dispatcher.add_handler(DEL_JOINED)
