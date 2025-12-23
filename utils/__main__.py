@@ -1,5 +1,6 @@
 import importlib
 import re
+import html
 from typing import Optional, List
 
 from telegram import Message, Chat, Update, Bot, User
@@ -18,9 +19,13 @@ from utils.modules.helper_funcs.chat_status import is_user_admin
 from utils.modules.helper_funcs.misc import paginate_modules
 
 PM_START_TEXT = """
-Hey there! My name is *{}*, I'm here to help you manage your groups! Hit /help to find out more about how to use me to my full potential.
+👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
 
-Join my [news channel](https://t.me/ProIndians) to get information on all the latest updates.
+<i>I keep chats clean, safe, and fully under control 🛡️</i>
+
+[➕ Add me to a Group ➕]
+[⚙️ Manage Group Settings ✍️]
+[Help][About]
 """
 
 HELP_STRINGS = """
@@ -114,6 +119,10 @@ def start(bot: Bot, update: Update, args: List[str]):
             if args[0].lower() == "help":
                 send_help(update.effective_chat.id, HELP_STRINGS)
 
+            elif args[0].lower() == "settings":
+                # Show user's personal settings (or instruct how to manage group settings)
+                send_settings(None, update.effective_user.id, True)
+
             elif args[0].lower().startswith("stngs_"):
                 match = re.match("stngs_(.*)", args[0].lower())
                 chat = dispatcher.bot.getChat(match.group(1))
@@ -123,17 +132,33 @@ def start(bot: Bot, update: Update, args: List[str]):
                 else:
                     send_settings(match.group(1), update.effective_user.id, True)
 
+            elif args[0].lower() == "about":
+                # Simple about message
+                about_text = "<b>About {}</b>\nI keep chats clean, safe, and fully under control. For help, click Help.".format(html.escape(bot.first_name))
+                update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
+
             elif args[0][1:].isdigit() and "rules" in IMPORTED:
                 IMPORTED["rules"].send_rules(update, args[0], from_pm=True)
 
         else:
             first_name = update.effective_user.first_name
+            # Format message using HTML with escaped values
+            start_text = PM_START_TEXT.format(
+                first=html.escape(first_name),
+                botname=html.escape(bot.first_name),
+            )
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
+                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
+                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", url="t.me/{}?start=about".format(bot.username))]
+            ])
+
             update.effective_message.reply_text(
-                PM_START_TEXT.format(escape_markdown(bot.first_name)),
-                                    parse_mode=ParseMode.MARKDOWN,
-                                    disable_web_page_preview=True,
-                                    reply_markup=InlineKeyboardMarkup(
-                                        [[InlineKeyboardButton(text="Add me to your chat!", url="t.me/{}?startgroup=true".format(bot.username))]]))
+                start_text,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=keyboard,
+            )
     else:
         update.effective_message.reply_text("Hello all Join @ProIndians.")
 
