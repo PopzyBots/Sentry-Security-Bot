@@ -246,9 +246,8 @@ def start(bot: Bot, update: Update, args: List[str]):
                     send_settings(match.group(1), update.effective_user.id, True)
 
             elif args[0].lower() == "about":
-                # Simple about message
-                about_text = "<b>About {}</b>\nI keep chats clean, safe, and fully under control. For help, click Help.".format(html.escape(bot.first_name))
-                update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
+                # Delegate to about handler for consistent output
+                about(bot, update)
 
             elif args[0][1:].isdigit() and "rules" in IMPORTED:
                 IMPORTED["rules"].send_rules(update, args[0], from_pm=True)
@@ -401,8 +400,22 @@ def get_help(bot: Bot, update: Update):
 
 @run_async
 def about(bot: Bot, update: Update):
-    about_text = "<b>About {}</b>\nI keep chats clean, safe, and fully under control. For help, click Help.".format(html.escape(bot.first_name))
-    update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
+    """Send an informative about message including name, purpose and features."""
+    bot_name = html.escape(bot.first_name)
+    about_lines = [
+        f"<b>About {bot_name}</b>",
+        "\n<b>What I do</b>: I help moderate groups and keep chats safe and organized.",
+        "\n<b>Key features</b>:",
+        "• Flood control and anti-spam",
+        "• Warnings, bans, mutes and global moderation tools",
+        "• Custom welcome & goodbye messages",
+        "• Notes, reminders and message filters",
+        "• Logging and audit features for moderators",
+        "• Translation and utility commands",
+        "\nUse <b>/help</b> for usage instructions or <b>/settings</b> to see configuration options."
+    ]
+    about_text = "\n".join(about_lines)
+    update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 def send_settings(chat_id, user_id, user=False):
