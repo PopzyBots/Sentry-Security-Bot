@@ -243,48 +243,25 @@ def left_member(bot: Bot, update: Update):
 @run_async
 @user_admin
 def welcome(bot: Bot, update: Update, args: List[str]):
-    chat = update.effective_chat  # type: Optional[Chat]
-    # if no args, show current replies.
-    if len(args) == 0 or args[0].lower() == "noformat":
-        noformat = args and args[0].lower() == "noformat"
-        pref, welcome_m, welcome_type = sql.get_welc_pref(chat.id)
+    chat = update.effective_chat
+
+    if not args:
+        pref, msg, _ = sql.get_welc_pref(chat.id)
         update.effective_message.reply_text(
-            "This chat has it's welcome setting set to: `{}`.\n*The welcome message "
-            "(not filling the {{}}) is:*".format(pref),
-            parse_mode=ParseMode.MARKDOWN)
+            f"Welcome messages are set to `{pref}`.",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return
 
-        if welcome_type == sql.Types.BUTTON_TEXT:
-            buttons = sql.get_welc_buttons(chat.id)
-            if noformat:
-                welcome_m += revert_buttons(buttons)
-                update.effective_message.reply_text(welcome_m)
-
-            else:
-                keyb = build_keyboard(buttons)
-                keyboard = InlineKeyboardMarkup(keyb)
-
-                send(update, welcome_m, keyboard, sql.DEFAULT_WELCOME)
-
-        else:
-            if noformat:
-                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m)
-
-            else:
-                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m, parse_mode=ParseMode.MARKDOWN)
-
-    elif len(args) >= 1:
-        if args[0].lower() in ("on", "yes"):
-            sql.set_welc_preference(str(chat.id), True)
-            update.effective_message.reply_text("I'll be polite!")
-
-        elif args[0].lower() in ("off", "no"):
-            sql.set_welc_preference(str(chat.id), False)
-            update.effective_message.reply_text("I'm sulking, not saying hello anymore.")
-
-        else:
-            # idek what you're writing, say yes or no
-            update.effective_message.reply_text("I understand 'on/yes' or 'off/no' only!")
-
+    arg = args[0].lower()
+    if arg in ("on", "yes"):
+        sql.set_welc_preference(chat.id, True)
+        update.effective_message.reply_text("Welcome messages enabled.")
+    elif arg in ("off", "no"):
+        sql.set_welc_preference(chat.id, False)
+        update.effective_message.reply_text("Welcome messages disabled.")
+    else:
+        update.effective_message.reply_text("Use `/welcome on` or `/welcome off`.")
 
 @run_async
 @user_admin
@@ -335,26 +312,19 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
 @run_async
 @user_admin
 @loggable
-def set_welcome(bot: Bot, update: Update) -> str:
-    chat = update.effective_chat  # type: Optional[Chat]
-    user = update.effective_user  # type: Optional[User]
-    msg = update.effective_message  # type: Optional[Message]
+def set_welcome(bot: Bot, update: Update):
+    chat = update.effective_chat
+    user = update.effective_user
 
-    text, data_type, content, buttons = get_welcome_type(msg)
-
-    if data_type is None:
-        msg.reply_text("You didn't specify what to reply with!")
+    text, dtype, content, buttons = get_welcome_type(update.effective_message)
+    if dtype is None:
+        update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
 
-    sql.set_custom_welcome(chat.id, content or text, data_type, buttons)
-    msg.reply_text("Successfully set custom welcome message!")
+    sql.set_custom_welcome(chat.id, content or text, dtype, buttons)
+    update.effective_message.reply_text("Custom welcome message set!")
 
-    return "<b>{}:</b>" \
-           "\n#SET_WELCOME" \
-           "\n<b>Admin:</b> {}" \
-           "\nSet the welcome message.".format(html.escape(chat.title),
-                                               mention_html(user.id, user.first_name))
-
+    return f"<b>{html.escape(chat.title)}</b>\n#SET_WELCOME\nAdmin: {mention_html(user.id, user.first_name)}"
 
 @run_async
 @user_admin
@@ -537,7 +507,7 @@ dispatcher.add_handler(LEFT_MEM_HANDLER)
 dispatcher.add_handler(WELC_PREF_HANDLER)
 dispatcher.add_handler(GOODBYE_PREF_HANDLER)
 dispatcher.add_handler(SET_WELCOME)
-dispatcher.add_handler(SET_GOODBYE)
+dispatcher.add_handler(SET_GOODBYE)    
 dispatcher.add_handler(RESET_WELCOME)
 dispatcher.add_handler(RESET_GOODBYE)
 dispatcher.add_handler(CLEAN_WELCOME)
