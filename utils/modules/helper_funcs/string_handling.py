@@ -6,6 +6,8 @@ import emoji
 from telegram import MessageEntity
 from telegram.utils.helpers import escape_markdown
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
 # NOTE: the url \ escape may cause double escapes
 # match * (bold) (don't escape if in url)
 # match _ (italics) (don't escape if in url)
@@ -21,6 +23,10 @@ MATCH_MD = re.compile(r'\*(.*?)\*|'
 # regex to find []() links -> hyperlinks/buttons
 LINK_REGEX = re.compile(r'(?<!\\)\[.+?\]\((.*?)\)')
 BTN_URL_REGEX = re.compile(r"(\[([^\[]+?)\]\(buttonurl:(?:/{0,2})(.+?)(:same)?\))")
+HTML_BUTTON_REGEX = re.compile(
+    r'<a\s+href="([^"]+)">([^<]+)</a>',
+    flags=re.IGNORECASE
+)
 
 
 def _selective_escape(to_parse: str) -> str:
@@ -120,6 +126,17 @@ def button_markdown_parser(txt: str, entities: Dict[MessageEntity, str] = None, 
     prev = 0
     note_data = ""
     buttons = []
+
+    # --- HTML button parsing ---
+    html_buttons = HTML_BUTTON_REGEX.findall(text)
+    for url, label in html_buttons:
+        buttons.append(
+            InlineKeyboardButton(text=label.strip(), url=url.strip())
+        )
+    
+    # Remove HTML buttons from text but KEEP text
+    text = HTML_BUTTON_REGEX.sub("", text).strip()
+
     for match in BTN_URL_REGEX.finditer(markdown_note):
         # Check if btnurl is escaped
         n_escapes = 0
