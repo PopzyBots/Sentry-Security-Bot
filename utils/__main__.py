@@ -173,10 +173,22 @@ for module_name in ALL_MODULES:
 def send_help(chat_id, text, keyboard=None):
     if not keyboard:
         keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
-    dispatcher.bot.send_message(chat_id=chat_id,
+    sent = dispatcher.bot.send_message(chat_id=chat_id,
                                 text=text,
                                 parse_mode=ParseMode.MARKDOWN,
                                 reply_markup=keyboard)
+    # Record this help message so we can edit it in-place later
+    try:
+        LAST_PM_MESSAGE[chat_id] = {
+            'message_id': sent.message_id,
+            'is_photo': False,
+            'photo_id': None,
+            'text': text,
+            'is_help': True,
+        }
+        _save_last_pm()
+    except Exception:
+        LOGGER.exception("Failed to record help message in LAST_PM_MESSAGE")
 
 
 @run_async
@@ -437,33 +449,151 @@ def help_button(bot: Bot, update: Update):
             module = mod_match.group(1)
             text = "Here is the help for the *{}* module:\n".format(HELPABLE[module].__mod_name__) \
                    + HELPABLE[module].__help__
-            query.message.reply_text(text=text,
-                                     parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(
-                                         [[InlineKeyboardButton(text="Back", callback_data="help_back")]]))
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="help_back")]])
+
+            # Try to edit in-place
+            try:
+                query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': query.message.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
+            except BadRequest as excp:
+                if excp.message == "Message is not modified":
+                    bot.answer_callback_query(query.id)
+                    return
+                # fallback to sending a new message and deleting the old one
+                sent = query.message.reply_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                try:
+                    query.message.delete()
+                except Exception:
+                    pass
+                LAST_PM_MESSAGE[sent.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
 
         elif prev_match:
             curr_page = int(prev_match.group(1))
-            query.message.reply_text(HELP_STRINGS,
-                                     parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(
-                                         paginate_modules(curr_page - 1, HELPABLE, "help")))
+            text = HELP_STRINGS
+            keyboard = InlineKeyboardMarkup(paginate_modules(curr_page - 1, HELPABLE, "help"))
+
+            try:
+                query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': query.message.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
+            except BadRequest as excp:
+                if excp.message == "Message is not modified":
+                    bot.answer_callback_query(query.id)
+                    return
+                sent = query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                try:
+                    query.message.delete()
+                except Exception:
+                    pass
+                LAST_PM_MESSAGE[sent.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
 
         elif next_match:
             next_page = int(next_match.group(1))
-            query.message.reply_text(HELP_STRINGS,
-                                     parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(
-                                         paginate_modules(next_page + 1, HELPABLE, "help")))
+            text = HELP_STRINGS
+            keyboard = InlineKeyboardMarkup(paginate_modules(next_page + 1, HELPABLE, "help"))
+
+            try:
+                query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': query.message.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
+            except BadRequest as excp:
+                if excp.message == "Message is not modified":
+                    bot.answer_callback_query(query.id)
+                    return
+                sent = query.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                try:
+                    query.message.delete()
+                except Exception:
+                    pass
+                LAST_PM_MESSAGE[sent.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
 
         elif back_match:
-            query.message.reply_text(text=HELP_STRINGS,
-                                     parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help")))
+            text = HELP_STRINGS
+            keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+            try:
+                query.message.edit_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': query.message.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
+            except BadRequest as excp:
+                if excp.message == "Message is not modified":
+                    bot.answer_callback_query(query.id)
+                    return
+                sent = query.message.reply_text(text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                try:
+                    query.message.delete()
+                except Exception:
+                    pass
+                LAST_PM_MESSAGE[sent.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': text,
+                    'is_help': True,
+                }
+                _save_last_pm()
+                bot.answer_callback_query(query.id)
+                return
 
-        # ensure no spinny white circle
-        bot.answer_callback_query(query.id)
-        query.message.delete()
     except BadRequest as excp:
         if excp.message == "Message is not modified":
             pass
