@@ -930,9 +930,34 @@ def settings_button(bot: Bot, update: Update):
                 return
             try:
                 chat = bot.get_chat(chat_id)
-                text = "*{}* has the following settings for the *{}* module:\n\n".format(escape_markdown(chat.title),
-                                                                                         module_obj.__mod_name__) + \
-                       module_obj.__chat_settings__(chat_id, user.id)
+                # Make sure chat title is a string and safe to escape
+                title = getattr(chat, 'title', None) or f"chat {chat_id}"
+                try:
+                    safe_title = escape_markdown(str(title))
+                except Exception:
+                    LOGGER.exception("settings_button: failed to escape chat title for chat %s", chat_id)
+                    safe_title = str(title)
+
+                try:
+                    safe_mod_name = escape_markdown(str(module_obj.__mod_name__))
+                except Exception:
+                    safe_mod_name = str(module_obj.__mod_name__)
+
+                # Call module __chat_settings__, but guard against it returning non-string or raising
+                try:
+                    settings_body = module_obj.__chat_settings__(chat_id, user.id)
+                except Exception:
+                    LOGGER.exception("settings_button: exception while calling __chat_settings__ for %s in %s", module, chat_id)
+                    try:
+                        bot.answer_callback_query(query.id, text="Failed to fetch settings for this module.")
+                    except Exception:
+                        pass
+                    return
+
+                if settings_body is None:
+                    settings_body = "No settings available for this module."
+
+                text = "*{}* has the following settings for the *{}* module:\n\n".format(safe_title, safe_mod_name) + str(settings_body)
                 query.message.reply_text(text=text,
                                          parse_mode=ParseMode.MARKDOWN,
                                          reply_markup=InlineKeyboardMarkup(
