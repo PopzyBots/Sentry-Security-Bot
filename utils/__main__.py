@@ -21,81 +21,15 @@ from utils.modules.helper_funcs.misc import paginate_modules
 PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
 
-<i>I keep chats clean, safe, and fully under control 🛡️</i>
+<i>I keep chats clean, safe, and fully under control.</i>
 """
 
-# Optional: set PM_START_PHOTO_ID to a Telegram file_id to send a photo with the PM start message.
-# Example: PM_ST"""ART_PHOTO_ID = "AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E"
-# You can also set this via environment variable PM_START_PHOTO_ID.
+# PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
+# Example: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
 import os
-import base64
 PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
 
-# If a cached file-id was previously saved to disk, prefer that when env var is missing
-PM_START_PHOTO_CACHE_FILE = os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt")
-if not PM_START_PHOTO_ID and os.path.exists(PM_START_PHOTO_CACHE_FILE):
-    try:
-        with open(PM_START_PHOTO_CACHE_FILE, "r", encoding="utf-8") as _f:
-            PM_START_PHOTO_ID = _f.read().strip()
-    except Exception:
-        PM_START_PHOTO_ID = ""
-
-# Helper: if a bundled base64 image exists, decode it to utils/static/start.jpg
-def _ensure_sample_image(path=None):
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    if path is None:
-        path = os.path.join(static_dir, "start.jpg")
-    b64_file = os.path.join(static_dir, "start_image.b64")
-
-    if os.path.exists(path):
-        return path
-
-    if not os.path.exists(b64_file):
-        return None
-
-    try:
-        with open(b64_file, "rb") as f:
-            b64 = f.read()
-        img = base64.b64decode(b64)
-        os.makedirs(static_dir, exist_ok=True)
-        with open(path, "wb") as out:
-            out.write(img)
-        return path
-    except Exception:
-        return None
-
-# Upload sample image (once) to Telegram to obtain a file_id and cache it to disk.
-def cache_pm_start_photo(bot):
-    global PM_START_PHOTO_ID
-    if PM_START_PHOTO_ID:
-        return
-
-    # ensure sample image exists (or decode the bundled base64)
-    sample_path = _ensure_sample_image()
-    if not sample_path:
-        LOGGER.info("No bundled start image found; skipping PM start photo caching.")
-        return
-
-    try:
-        # send to owner silently to get file_id; delete the message immediately
-        sent = bot.send_photo(chat_id=OWNER_ID, photo=open(sample_path, "rb"), disable_notification=True)
-        if sent and sent.photo:
-            PM_START_PHOTO_ID = sent.photo[-1].file_id
-            try:
-                with open(PM_START_PHOTO_CACHE_FILE, "w", encoding="utf-8") as f:
-                    f.write(PM_START_PHOTO_ID)
-                LOGGER.info("Cached PM start photo file_id to %s", PM_START_PHOTO_CACHE_FILE)
-            except Exception:
-                LOGGER.exception("Failed to write PM start photo id to disk")
-        # try to remove the message to avoid cluttering owner's PMs
-        try:
-            bot.delete_message(chat_id=OWNER_ID, message_id=sent.message_id)
-        except Exception:
-            pass
-    except BadRequest:
-        LOGGER.exception("Failed to upload sample PM start image to obtain file_id.")
-    except Exception:
-        LOGGER.exception("Unexpected error when caching PM start photo file_id.")
+# Note: bundled sample image, automatic upload and caching have been removed. Use /genid store to manually set the file id.
 
 HELP_STRINGS = """
 Hey! My name is *{}*. I am a group management bot, here to help you get around and keep the order in your groups!
@@ -206,24 +140,31 @@ def genid(bot: Bot, update: Update, args: List[str]):
         )
         return
 
-    file_id = photo.file_id
-    update.effective_message.reply_text(f"<b>File ID:</b>\n<code>{file_id}</code>", parse_mode=ParseMode.HTML)
+    # Only support storing the file id via: /genid store (owner only). Do not display file ids publicly.
+    if not (args and args[0].lower() in ("store", "save", "set")):
+        update.effective_message.reply_text(
+            "Usage: reply to the photo with `/genid store` to save it as the PM start photo (bot owner only).",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return
 
-    # Optionally store as PM start photo id if requested and owner
-    if args and args[0].lower() in ("store", "save", "set"):
-        if user.id != OWNER_ID:
-            update.effective_message.reply_text("Only the bot owner can store the PM start photo file id.")
-            return
-        try:
-            with open(PM_START_PHOTO_CACHE_FILE, "w", encoding="utf-8") as f:
-                f.write(file_id)
-            global PM_START_PHOTO_ID
-            PM_START_PHOTO_ID = file_id
-            update.effective_message.reply_text("File id stored and will be used for the PM start message.")
-            LOGGER.info("PM start photo id updated via /genid by owner %s", user.id)
-        except Exception:
-            LOGGER.exception("Failed to store PM start photo id via /genid")
-            update.effective_message.reply_text("Failed to save file id to disk.")
+    # owner-only store
+    if user.id != OWNER_ID:
+        update.effective_message.reply_text("Only the bot owner can store the PM start photo file id.")
+        return
+
+    file_id = photo.file_id
+    try:
+        # Persist to disk so it survives restarts (optional helper for admins).
+        with open(os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt"), "w", encoding="utf-8") as f:
+            f.write(file_id)
+        global PM_START_PHOTO_ID
+        PM_START_PHOTO_ID = file_id
+        update.effective_message.reply_text("File id stored and will be used for the PM start message.")
+        LOGGER.info("PM start photo id updated via /genid by owner %s", user.id)
+    except Exception:
+        LOGGER.exception("Failed to store PM start photo id via /genid")
+        update.effective_message.reply_text("Failed to save file id to disk.")
 
 
 @run_async
@@ -582,11 +523,7 @@ def main():
 
     # dispatcher.add_error_handler(error_callback)
 
-    # Attempt to cache a PM start photo file_id from the bundled image if needed
-    try:
-        cache_pm_start_photo(dispatcher.bot)
-    except Exception:
-        LOGGER.exception("Failed when attempting to cache PM start photo file_id at startup")
+
 
     if WEBHOOK:
         LOGGER.info("Using webhooks.")
