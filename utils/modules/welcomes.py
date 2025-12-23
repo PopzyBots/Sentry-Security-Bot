@@ -329,7 +329,13 @@ def set_welcome(bot: Bot, update: Update):
     chat = update.effective_chat
     user = update.effective_user
 
-    text, dtype, content, buttons = get_welcome_type(update.effective_message)
+    msg = update.effective_message.reply_to_message
+    if not msg:
+        update.effective_message.reply_text("Reply to text or media to set welcome.")
+        return ""
+    
+    text, dtype, content, buttons = get_welcome_type(msg)
+
     if dtype is None:
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
