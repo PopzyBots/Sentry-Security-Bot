@@ -366,11 +366,19 @@ def set_welcome(bot: Bot, update: Update):
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
 
-    text, dtype, content, buttons = get_welcome_type(msg)
-
-    if dtype is None:
+    raw_text = msg.text or msg.caption
+    if not raw_text:
         update.effective_message.reply_text("Reply to text or media to set welcome.")
         return ""
+    
+    clean_text, buttons = revert_buttons(raw_text)
+    
+    sql.set_custom_welcome(
+        chat.id,
+        clean_text,
+        sql.Types.BUTTON_TEXT if buttons else sql.Types.TEXT,
+        buttons,
+    )
     
     # 🔒 Force TEXT / BUTTON_TEXT only (prevents markdown corruption)
     if buttons:
