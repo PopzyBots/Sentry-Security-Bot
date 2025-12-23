@@ -72,8 +72,6 @@ Quick usage guide for *{}* — how to use this bot 📘
 - /genid store (reply to photo): Store a photo file_id to use for the PM start image (owner only).
 - /genid clear: Clear the stored PM start photo id (owner only).
 - /donate: Information on donating to the project's creator.
-
-For module-specific help, use `/help <module>` (e.g. `/help welcomes`).
 """.format(dispatcher.bot.first_name)
 
 DONATE_STRING = """Heya, glad to hear you want to donate!
