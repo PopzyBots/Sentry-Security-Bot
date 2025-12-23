@@ -86,28 +86,16 @@ def get_welcome_type(msg: Message):
     text = ""
 
     args = msg.text.split(None, 1)  # use python's maxsplit to separate cmd and args
-    raw_text = args[1] if len(args) >= 2 else ""
 
     buttons = []
     # determine what the contents of the filter are - text, image, sticker, etc
     if len(args) >= 2:
         offset = len(args[1]) - len(msg.text)
-    
-        try:
-            parsed_text, buttons = button_markdown_parser(
-                args[1],
-                entities=msg.parse_entities(),
-                offset=offset
-            )
-        except Exception:
-            parsed_text = ""
-            buttons = []
-    
-        # Text MUST always exist
-        text = parsed_text if parsed_text.strip() else raw_text
-    
-        # Data type depends on buttons, NOT text
-        data_type = Types.BUTTON_TEXT if buttons else Types.TEXT
+        text, buttons = button_markdown_parser(args[1], entities=msg.parse_entities(), offset=offset)
+        if buttons:
+            data_type = Types.BUTTON_TEXT
+        else:
+            data_type = Types.TEXT
 
     elif msg.reply_to_message and msg.reply_to_message.sticker:
         content = msg.reply_to_message.sticker.file_id
