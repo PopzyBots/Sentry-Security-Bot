@@ -28,6 +28,7 @@ PM_START_TEXT = """
 # If a file `pm_start_photo_id.txt` exists in this package, its contents will override the environment variable.
 # Example env var: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
 import os
+import json
 PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
 
 # Load stored file id (if previously saved via `/genid store`) so it persists across restarts
@@ -101,6 +102,36 @@ USER_SETTINGS = {}
 #   'orig_*' optional fields for restoring when About is shown
 # }
 LAST_PM_MESSAGE = {}
+
+# Persistence for LAST_PM_MESSAGE across restarts
+_last_pm_path = os.path.join(os.path.dirname(__file__), "last_pm_message.json")
+
+def _save_last_pm():
+    """Persist LAST_PM_MESSAGE to disk as JSON (keys -> str)."""
+    try:
+        with open(_last_pm_path, "w", encoding="utf-8") as _f:
+            json.dump({str(k): v for k, v in LAST_PM_MESSAGE.items()}, _f, ensure_ascii=False)
+    except Exception:
+        LOGGER.exception("Failed to save LAST_PM_MESSAGE to disk")
+
+
+def _load_last_pm():
+    """Load LAST_PM_MESSAGE from disk if present."""
+    try:
+        if os.path.exists(_last_pm_path):
+            with open(_last_pm_path, "r", encoding="utf-8") as _f:
+                data = json.load(_f)
+            for k, v in data.items():
+                try:
+                    LAST_PM_MESSAGE[int(k)] = v
+                except ValueError:
+                    LAST_PM_MESSAGE[k] = v
+            LOGGER.info("Loaded LAST_PM_MESSAGE from last_pm_message.json")
+    except Exception:
+        LOGGER.exception("Failed to load last_pm_message.json; starting with empty LAST_PM_MESSAGE")
+
+# Load persisted last PM messages on startup
+_load_last_pm()
 
 for module_name in ALL_MODULES:
     imported_module = importlib.import_module("utils.modules." + module_name)
@@ -310,7 +341,8 @@ def start(bot: Bot, update: Update, args: List[str]):
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
                 [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
-                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", url="t.me/{}?start=about".format(bot.username))]
+                # Use a callback for About so it edits the existing message in-place instead of triggering a /start deep link
+                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about_cb")]
             ])
 
             if PM_START_PHOTO_ID:
@@ -330,6 +362,7 @@ def start(bot: Bot, update: Update, args: List[str]):
                         'photo_id': PM_START_PHOTO_ID,
                         'text': start_text,
                     }
+                    _save_last_pm()
                 except BadRequest:
                     # Fallback to text reply if file_id invalid or fails for any reason
                     sent = update.effective_message.reply_text(
@@ -344,6 +377,7 @@ def start(bot: Bot, update: Update, args: List[str]):
                         'photo_id': None,
                         'text': start_text,
                     }
+                    _save_last_pm()
             else:
                 sent = update.effective_message.reply_text(
                     start_text,
@@ -357,6 +391,7 @@ def start(bot: Bot, update: Update, args: List[str]):
                     'photo_id': None,
                     'text': start_text,
                 }
+                _save_last_pm()
     else:
         update.effective_message.reply_text("Hello all Join @ProIndians.")
 
@@ -496,6 +531,55 @@ def about(bot: Bot, update: Update):
 
 
 @run_async
+def about_callback(bot: Bot, update: Update):
+    """Callback handler for pressing About on the start message (edits start -> about in-place)."""
+    query = update.callback_query
+    chat_id = query.message.chat.id
+
+    about_text = "\n".join([
+        f"<b>About {html.escape(bot.first_name)}</b>",
+        "\n<b>What I do</b>: I help moderate groups and keep chats safe and organized.",
+        "\n<b>Key features</b>:",
+        "• Flood control and anti-spam",
+        "• Warnings, bans, mutes and global moderation tools",
+        "• Custom welcome & goodbye messages",
+        "• Notes, reminders and message filters",
+        "• Logging and audit features for moderators",
+        "• Translation and utility commands",
+        "\nUse <b>/help</b> for usage instructions or <b>/settings</b> to see configuration options."
+    ])
+
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
+
+    info = LAST_PM_MESSAGE.get(chat_id)
+    if info:
+        # Save original if not already saved
+        if 'orig_saved' not in info:
+            info['orig_saved'] = True
+            info['orig_is_photo'] = info['is_photo']
+            info['orig_photo_id'] = info.get('photo_id')
+            info['orig_text'] = info.get('text')
+
+        try:
+            if info['is_photo']:
+                bot.edit_message_caption(chat_id=chat_id, message_id=info['message_id'], caption=about_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                bot.edit_message_text(chat_id=chat_id, message_id=info['message_id'], text=about_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+
+            info['is_about'] = True
+            info['text'] = about_text
+            _save_last_pm()
+            bot.answer_callback_query(query.id)
+            return
+        except BadRequest:
+            # fallback to sending a new about message
+            pass
+
+    # If we couldn't edit in-place, send a normal about message as a fallback
+    about(bot, update)
+
+
+@run_async
 def about_back(bot: Bot, update: Update):
     """Callback query handler to replace the about message with the welcome/start text."""
     query = update.callback_query
@@ -513,21 +597,64 @@ def about_back(bot: Bot, update: Update):
     ])
 
     try:
-        # Try to edit the message into the photo version if we have a stored file_id
-        if PM_START_PHOTO_ID:
-            media = InputMediaPhoto(media=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML)
-            query.message.edit_media(media=media, reply_markup=keyboard)
+        # Prefer to use the saved original start message data if available
+        info = LAST_PM_MESSAGE.get(query.message.chat.id)
+        target_is_photo = False
+        target_photo_id = None
+        target_text = start_text
+
+        if info and info.get('orig_saved'):
+            target_is_photo = info.get('orig_is_photo', False)
+            target_photo_id = info.get('orig_photo_id')
+            target_text = info.get('orig_text', start_text)
         else:
-            # No photo available, edit as text
-            query.message.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            # Fallback to configured PM_START_PHOTO_ID
+            target_is_photo = bool(PM_START_PHOTO_ID)
+            target_photo_id = PM_START_PHOTO_ID if PM_START_PHOTO_ID else None
+            target_text = start_text
+
+        if target_is_photo and target_photo_id:
+            media = InputMediaPhoto(media=target_photo_id, caption=target_text, parse_mode=ParseMode.HTML)
+            query.message.edit_media(media=media, reply_markup=keyboard)
+            # Update LAST_PM_MESSAGE to reflect restored state
+            LAST_PM_MESSAGE[query.message.chat.id] = {
+                'message_id': query.message.message_id,
+                'is_photo': True,
+                'photo_id': target_photo_id,
+                'text': target_text,
+            }
+            _save_last_pm()
+        else:
+            query.message.edit_text(target_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            LAST_PM_MESSAGE[query.message.chat.id] = {
+                'message_id': query.message.message_id,
+                'is_photo': False,
+                'photo_id': None,
+                'text': target_text,
+            }
+            _save_last_pm()
         bot.answer_callback_query(query.id)
     except BadRequest:
         # If edit fails (e.g., message is too old or media can't be edited), send a new start message instead
         try:
             if PM_START_PHOTO_ID:
-                query.message.reply_photo(photo=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                sent = query.message.reply_photo(photo=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': True,
+                    'photo_id': PM_START_PHOTO_ID,
+                    'text': start_text,
+                }
+                _save_last_pm()
             else:
-                query.message.reply_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                sent = query.message.reply_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                LAST_PM_MESSAGE[query.message.chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': start_text,
+                }
+                _save_last_pm()
             bot.answer_callback_query(query.id)
         except Exception:
             LOGGER.exception("Failed to restore start message from about_back callback")
@@ -702,6 +829,7 @@ def main():
     about_handler = CommandHandler("about", about)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
     about_callback_handler = CallbackQueryHandler(about_back, pattern=r"about_back")
+    about_inline_handler = CallbackQueryHandler(about_callback, pattern=r"about_cb")
 
     donate_handler = CommandHandler("donate", donate)
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
@@ -714,6 +842,7 @@ def main():
     dispatcher.add_handler(settings_handler)
     dispatcher.add_handler(about_handler)
     dispatcher.add_handler(about_callback_handler)
+    dispatcher.add_handler(about_inline_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
