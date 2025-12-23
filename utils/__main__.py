@@ -92,6 +92,16 @@ DATA_EXPORT = []
 CHAT_SETTINGS = {}
 USER_SETTINGS = {}
 
+# Track last bot-sent message in PMs so we can edit it in-place (welcome <-> about)
+# Structure: LAST_PM_MESSAGE[chat_id] = {
+#   'message_id': int,
+#   'is_photo': bool,
+#   'photo_id': str or None,
+#   'text': str (the caption or text),
+#   'orig_*' optional fields for restoring when About is shown
+# }
+LAST_PM_MESSAGE = {}
+
 for module_name in ALL_MODULES:
     imported_module = importlib.import_module("utils.modules." + module_name)
     if not hasattr(imported_module, "__mod_name__"):
@@ -246,8 +256,46 @@ def start(bot: Bot, update: Update, args: List[str]):
                     send_settings(match.group(1), update.effective_user.id, True)
 
             elif args[0].lower() == "about":
-                # Delegate to about handler for consistent output
-                about(bot, update)
+                # Try to edit the existing welcome message in-place to show About (preferred)
+                chat_id = update.effective_chat.id
+                about_text = "\n".join([
+                    f"<b>About {html.escape(bot.first_name)}</b>",
+                    "\n<b>What I do</b>: I help moderate groups and keep chats safe and organized.",
+                    "\n<b>Key features</b>:",
+                    "• Flood control and anti-spam",
+                    "• Warnings, bans, mutes and global moderation tools",
+                    "• Custom welcome & goodbye messages",
+                    "• Notes, reminders and message filters",
+                    "• Logging and audit features for moderators",
+                    "• Translation and utility commands",
+                    "\nUse <b>/help</b> for usage instructions or <b>/settings</b> to see configuration options."
+                ])
+                keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="about_back")]])
+
+                info = LAST_PM_MESSAGE.get(chat_id)
+                if info:
+                    # Save original if not already saved
+                    if 'orig_saved' not in info:
+                        info['orig_saved'] = True
+                        info['orig_is_photo'] = info['is_photo']
+                        info['orig_photo_id'] = info.get('photo_id')
+                        info['orig_text'] = info.get('text')
+
+                    try:
+                        if info['is_photo']:
+                            # edit caption of the photo message to show about
+                            bot.edit_message_caption(chat_id=chat_id, message_id=info['message_id'], caption=about_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                        else:
+                            bot.edit_message_text(chat_id=chat_id, message_id=info['message_id'], text=about_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                        # mark that we currently show about
+                        info['is_about'] = True
+                        info['text'] = about_text
+                    except BadRequest:
+                        # fallback to sending a new about message
+                        about(bot, update)
+                else:
+                    # No previous start message known; just send a normal about message
+                    about(bot, update)
 
             elif args[0][1:].isdigit() and "rules" in IMPORTED:
                 IMPORTED["rules"].send_rules(update, args[0], from_pm=True)
@@ -268,28 +316,47 @@ def start(bot: Bot, update: Update, args: List[str]):
             if PM_START_PHOTO_ID:
                 # Send cached Telegram file_id (fast) as photo with caption
                 try:
-                    update.effective_message.reply_photo(
+                    sent = update.effective_message.reply_photo(
                         photo=PM_START_PHOTO_ID,
                         caption=start_text,
                         parse_mode=ParseMode.HTML,
                         reply_markup=keyboard,
                         disable_notification=False,
                     )
+                    # remember last bot message in this PM
+                    LAST_PM_MESSAGE[update.effective_chat.id] = {
+                        'message_id': sent.message_id,
+                        'is_photo': True,
+                        'photo_id': PM_START_PHOTO_ID,
+                        'text': start_text,
+                    }
                 except BadRequest:
                     # Fallback to text reply if file_id invalid or fails for any reason
-                    update.effective_message.reply_text(
+                    sent = update.effective_message.reply_text(
                         start_text,
                         parse_mode=ParseMode.HTML,
                         disable_web_page_preview=True,
                         reply_markup=keyboard,
                     )
+                    LAST_PM_MESSAGE[update.effective_chat.id] = {
+                        'message_id': sent.message_id,
+                        'is_photo': False,
+                        'photo_id': None,
+                        'text': start_text,
+                    }
             else:
-                update.effective_message.reply_text(
+                sent = update.effective_message.reply_text(
                     start_text,
                     parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True,
                     reply_markup=keyboard,
                 )
+                LAST_PM_MESSAGE[update.effective_chat.id] = {
+                    'message_id': sent.message_id,
+                    'is_photo': False,
+                    'photo_id': None,
+                    'text': start_text,
+                }
     else:
         update.effective_message.reply_text("Hello all Join @ProIndians.")
 
