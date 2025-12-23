@@ -267,19 +267,30 @@ def welcome(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat
 
     if not args:
-        pref, welcome_msg, welcome_type = sql.get_welc_pref(chat.id)
+        pref, msg, _ = sql.get_welc_pref(chat.id)
+
+        if pref and msg:
+            send(
+                update,
+                msg,
+                InlineKeyboardMarkup(build_keyboard(sql.get_welc_buttons(chat.id))),
+                sql.DEFAULT_WELCOME
+            )
+        else:
+            update.effective_message.reply_text("Welcome messages are disabled.")
+
     
         if not pref:
             update.effective_message.reply_text(
                 "Welcome messages are currently *disabled*.",
-                parse_mode=ParseMode.MARKDOWN,
+                parse_mode=ParseMode.HTML,
             )
             return
     
         update.effective_message.reply_text(
             "Welcome messages are currently *enabled*.\n"
             "*Current welcome message:*",
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=ParseMode.HTML,
         )
     
         # Media welcome
@@ -320,7 +331,7 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
         update.effective_message.reply_text(
             "This chat has it's goodbye setting set to: `{}`.\n*The goodbye  message "
             "(not filling the {{}}) is:*".format(pref),
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.HTML)
 
         if goodbye_type == sql.Types.BUTTON_TEXT:
             buttons = sql.get_gdbye_buttons(chat.id)
@@ -339,7 +350,7 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
                 ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m)
 
             else:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.MARKDOWN)
+                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
@@ -493,7 +504,7 @@ WELC_HELP_TXT = "Your group's welcome/goodbye messages can be personalised in mu
 @run_async
 @user_admin
 def welcome_help(bot: Bot, update: Update):
-    update.effective_message.reply_text(WELC_HELP_TXT, parse_mode=ParseMode.MARKDOWN)
+    update.effective_message.reply_text(WELC_HELP_TXT, parse_mode=ParseMode.HTML)
 
 
 # TODO: get welcome data from group butler snap
