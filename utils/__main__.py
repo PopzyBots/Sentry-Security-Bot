@@ -17,6 +17,8 @@ from utils import dispatcher, updater, TOKEN, WEBHOOK, OWNER_ID, CERT_PATH, PORT
 from utils.modules import ALL_MODULES
 from utils.modules.helper_funcs.chat_status import is_user_admin
 from utils.modules.helper_funcs.misc import paginate_modules
+from utils.modules.sql import users_sql
+from utils.modules.sql.users_sql import del_chat
 
 PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
@@ -561,13 +563,16 @@ def get_settings(bot: Bot, update: Update):
         parts = msg.text.split()
         # Default behavior: no args -> show the user's settings in PM
         if len(parts) == 1:
-            # If the bot does not appear to be connected to any group, show a helpful message
-            if not CHAT_SETTINGS:
+            # Check if bot is actually connected to any groups
+            all_chats = users_sql.get_all_chats()
+            has_groups = bool(all_chats)  # Flag: True if connected to groups, False otherwise
+            
+            # If the bot is not connected to any group, show a helpful message
+            if not has_groups:
                 text = (
                     "<b>😢 No groups found.</b>\n\n"
                     "If a group in which <b>you are an administrator doesn't appear</b> here:\n"
-                    " • Send /reload in the group and try again\n"
-                    " • Send <code>/settings</code> in the group and then press \"Open in pvt\"")
+                    "• Send <code>/settings</code> in the group and then press \"Open in pvt\"")
                 msg.reply_text(text=text, parse_mode=ParseMode.HTML)
             else:
                 send_settings(chat.id, user.id, True)
@@ -599,6 +604,20 @@ def migrate_chats(bot: Bot, update: Update):
     raise DispatcherHandlerStop
 
 
+@run_async
+def left_chat(bot: Bot, update: Update):
+    """Handler for when bot leaves or is removed from a group."""
+    chat = update.effective_chat
+    left_member = update.effective_message.left_chat_member
+    
+    # Check if the bot itself was removed
+    if left_member.id == bot.id:
+        LOGGER.info("Bot was removed from chat %s (%s)", chat.id, chat.title)
+        # Remove chat from database
+        del_chat(chat.id)
+        LOGGER.info("Chat %s removed from database", chat.id)
+
+
 def main():
     test_handler = CommandHandler("test", test)
     genid_handler = CommandHandler("genid", genid, pass_args=True)
@@ -612,6 +631,7 @@ def main():
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
 
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
+    left_chat_handler = MessageHandler(Filters.status_update.left_chat_member, left_chat)
 
     # dispatcher.add_handler(test_handler)
     dispatcher.add_handler(test_handler)
@@ -622,6 +642,7 @@ def main():
     dispatcher.add_handler(about_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
+    dispatcher.add_handler(left_chat_handler)
 
 
     # dispatcher.add_error_handler(error_callback)
