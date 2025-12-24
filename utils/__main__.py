@@ -208,15 +208,18 @@ def genid(bot: Bot, update: Update, args: List[str]):
 def start(bot: Bot, update: Update, args: List[str]):
     if update.effective_chat.type == "private":
         if len(args) >= 1:
-            if args[0].lower() == "help":
+            cmd = args[0].lower()
+
+            # Redirect legacy ?start=help to ?start=settings for backward compatibility
+            if cmd == "help":
+                cmd = "settings"
+
+            if cmd == "settings":
+                # Show help content when opened via ?start=settings
                 send_help(update.effective_chat.id, HELP_STRINGS)
 
-            elif args[0].lower() == "settings":
-                # Show user's personal settings (or instruct how to manage group settings)
-                send_settings(None, update.effective_user.id, True)
-
-            elif args[0].lower().startswith("stngs_"):
-                match = re.match("stngs_(.*)", args[0].lower())
+            elif cmd.startswith("stngs_"):
+                match = re.match("stngs_(.*)", cmd)
                 chat = dispatcher.bot.getChat(match.group(1))
 
                 if is_user_admin(chat, update.effective_user.id):
@@ -224,7 +227,7 @@ def start(bot: Bot, update: Update, args: List[str]):
                 else:
                     send_settings(match.group(1), update.effective_user.id, True)
 
-            elif args[0].lower() == "about":
+            elif cmd == "about":
                 # About message (legacy /start about)
                 update.effective_message.reply_text(ABOUT_TEXT, parse_mode=ParseMode.HTML)
 
@@ -415,7 +418,7 @@ def get_help(bot: Bot, update: Update):
         update.effective_message.reply_text("Contact me in PM to get the list of possible commands.",
                                             reply_markup=InlineKeyboardMarkup(
                                                 [[InlineKeyboardButton(text="Help",
-                                                                       url="t.me/{}?start=help".format(
+                                                                       url="t.me/{}?start=settings".format(
                                                                            bot.username))]]))
         return
 
