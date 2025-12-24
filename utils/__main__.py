@@ -37,6 +37,12 @@ Sentry is a group security and moderation bot built to protect Telegram communit
 • Filters, notes, and admin utilities  
 • Optional global moderation  
 • Lightweight and fast
+
+<pre>
+/ban        Ban a user
+/unban      Unban a user
+/mute       Mute a user
+</pre>
 """
 
 # PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
