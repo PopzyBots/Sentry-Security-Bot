@@ -274,8 +274,8 @@ def start(bot: Bot, update: Update, args: List[str]):
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))]
             ]
             
-            # Only show Manage Group Settings button when NOT connected
-            if not has_connection:
+            # Only show Manage Group Settings button when connected
+            if has_connection:
                 keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
             
             keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
@@ -467,8 +467,8 @@ def about_button(bot: Bot, update: Update):
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))]
             ]
             
-            # Only show Manage Group Settings button when NOT connected
-            if not has_connection:
+            # Only show Manage Group Settings button when connected
+            if has_connection:
                 keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
             
             keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
@@ -559,8 +559,8 @@ def settings_button(bot: Bot, update: Update):
             [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(query.message.bot.username))]
         ]
         
-        # Only show Manage Group Settings button when NOT connected
-        if not has_connection:
+        # Only show Manage Group Settings button when connected
+        if has_connection:
             keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
         
         keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
