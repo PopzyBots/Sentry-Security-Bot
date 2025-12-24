@@ -540,7 +540,11 @@ def get_settings(bot: Bot, update: Update):
 
     else:
         parts = msg.text.split()
-        if len(parts) == 1 or (len(parts) > 1 and parts[1].lower() == 'help'):
+        # Default behavior: no args -> show the user's settings in PM
+        if len(parts) == 1:
+            send_settings(chat.id, user.id, True)
+        # If the user explicitly asks for help, show the help text
+        elif len(parts) > 1 and parts[1].lower() == 'help':
             send_help(chat.id, HELP_STRINGS)
         else:
             send_settings(chat.id, user.id, True)
