@@ -513,6 +513,29 @@ def send_settings(chat_id, user_id, user=False):
 def settings_button(bot: Bot, update: Update):
     query = update.callback_query
     user = update.effective_user
+    msg = query.message
+    data = query.data
+    
+    # Handle Back button to welcome screen from settings
+    if data == "start_back":
+        first_name = user.first_name
+        start_text = PM_START_TEXT.format(
+            first=html.escape(first_name),
+            botname=html.escape(query.message.bot.first_name),
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(query.message.bot.username))],
+            [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
+            [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
+        ])
+        try:
+            msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        except BadRequest:
+            msg.delete()
+            dispatcher.bot.send_message(user.id, start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        bot.answer_callback_query(query.id)
+        return
+    
     mod_match = re.match(r"stngs_module\((.+?),(.+?)\)", query.data)
     prev_match = re.match(r"stngs_prev\((.+?),(.+?)\)", query.data)
     next_match = re.match(r"stngs_next\((.+?),(.+?)\)", query.data)
@@ -672,10 +695,10 @@ def main():
 
     # /help command migrated to /settings (handled inside get_settings for PM usage)
     help_callback_handler = CallbackQueryHandler(help_button, pattern=r"^settings")
-    about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|start_back|manage_settings)$")
+    about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|manage_settings)$")
+    settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"(stngs_|start_back)")
 
     settings_handler = CommandHandler("settings", get_settings)
-    settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
 
     migrate_handler = MessageHandler(Filters.status_update.migrate, migrate_chats)
     left_chat_handler = MessageHandler(Filters.status_update.left_chat_member, left_chat)
