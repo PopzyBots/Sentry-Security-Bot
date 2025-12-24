@@ -258,16 +258,29 @@ def start(bot: Bot, update: Update, args: List[str]):
 
         else:
             first_name = update.effective_user.first_name
+            user = update.effective_user
             # Format message using HTML with escaped values
             start_text = PM_START_TEXT.format(
                 first=html.escape(first_name),
                 botname=html.escape(bot.first_name),
             )
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
-                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
-                [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
-            ])
+            
+            # Check if user has an active connection
+            connected_chat = connection_sql.get_connected_chat(user.id)
+            has_connection = bool(connected_chat)
+            
+            # Build keyboard based on connection status
+            keyboard_buttons = [
+                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))]
+            ]
+            
+            # Only show Manage Group Settings button when NOT connected
+            if not has_connection:
+                keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
+            
+            keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
+            
+            keyboard = InlineKeyboardMarkup(keyboard_buttons)
 
             if PM_START_PHOTO_ID:
                 # Send cached Telegram file_id (fast) as photo with caption
@@ -444,11 +457,24 @@ def about_button(bot: Bot, update: Update):
                 first=html.escape(first_name),
                 botname=html.escape(bot.first_name),
             )
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
-                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
-                [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
-            ])
+            
+            # Check if user has an active connection
+            connected_chat = connection_sql.get_connected_chat(user.id)
+            has_connection = bool(connected_chat)
+            
+            # Build keyboard based on connection status
+            keyboard_buttons = [
+                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))]
+            ]
+            
+            # Only show Manage Group Settings button when NOT connected
+            if not has_connection:
+                keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
+            
+            keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
+            
+            keyboard = InlineKeyboardMarkup(keyboard_buttons)
+            
             if msg.photo:
                 msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             else:
@@ -523,11 +549,24 @@ def settings_button(bot: Bot, update: Update):
             first=html.escape(first_name),
             botname=html.escape(query.message.bot.first_name),
         )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(query.message.bot.username))],
-            [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
-            [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
-        ])
+        
+        # Check if user has an active connection
+        connected_chat = connection_sql.get_connected_chat(user.id)
+        has_connection = bool(connected_chat)
+        
+        # Build keyboard based on connection status
+        keyboard_buttons = [
+            [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(query.message.bot.username))]
+        ]
+        
+        # Only show Manage Group Settings button when NOT connected
+        if not has_connection:
+            keyboard_buttons.append([InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")])
+        
+        keyboard_buttons.append([InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")])
+        
+        keyboard = InlineKeyboardMarkup(keyboard_buttons)
+        
         try:
             msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         except BadRequest:
