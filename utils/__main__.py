@@ -542,7 +542,15 @@ def get_settings(bot: Bot, update: Update):
         parts = msg.text.split()
         # Default behavior: no args -> show the user's settings in PM
         if len(parts) == 1:
-            send_settings(chat.id, user.id, True)
+            # If the bot does not appear to be connected to any group, show a helpful message
+            if not CHAT_SETTINGS:
+                text = (
+                    "<b>No groups found.😢</b>\n\n"
+                    "If a group in which <b>you are an administrator doesn't appear</b> here:\n"
+                    "- Send <code>/settings</code> in the group and then press \"Open in pvt\"")
+                msg.reply_text(text=text, parse_mode=ParseMode.HTML)
+            else:
+                send_settings(chat.id, user.id, True)
         # If the user explicitly asks for help, show the help text
         elif len(parts) > 1 and parts[1].lower() == 'help':
             send_help(chat.id, HELP_STRINGS)
