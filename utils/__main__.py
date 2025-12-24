@@ -563,14 +563,25 @@ def get_settings(bot: Bot, update: Update):
         parts = msg.text.split()
         # Default behavior: no args -> show the user's settings in PM
         if len(parts) == 1:
-            # Check if bot is actually connected to any groups
+            # Check if bot is in groups where THIS USER is an admin
             all_chats = users_sql.get_all_chats()
-            has_groups = bool(all_chats)  # Flag: True if connected to groups, False otherwise
+            user_admin_groups = []
+            
+            for chat_obj in all_chats:
+                try:
+                    # Check if the user is an admin in this group
+                    if is_user_admin(dispatcher.bot.getChat(chat_obj.chat_id), user.id):
+                        user_admin_groups.append(chat_obj)
+                except (BadRequest, TelegramError):
+                    # Chat might not be accessible or user might have left
+                    continue
+            
+            has_groups = bool(user_admin_groups)  # Flag: True if user is admin in any group, False otherwise
             
             # Display flag status for debugging
             msg.reply_text(f"<b>Flag Status:</b> <code>{has_groups}</code>", parse_mode=ParseMode.HTML)
             
-            # If the bot is not connected to any group, show a helpful message
+            # If the user is not an admin in any group, show a helpful message
             if not has_groups:
                 text = (
                     "<b>😢 No groups found.</b>\n\n"
@@ -578,10 +589,9 @@ def get_settings(bot: Bot, update: Update):
                     "• Send <code>/settings</code> in the group and then press \"Open in pvt\"")
                 msg.reply_text(text=text, parse_mode=ParseMode.HTML)
             else:
-                # Show group settings selector with buttons for the first available group
-                # Or show settings for groups where user is admin
-                first_group = all_chats[0]
-                send_settings(first_group.chat_id, user.id, False)
+                # Show group settings selector for the first group where user is admin
+                first_admin_group = user_admin_groups[0]
+                send_settings(first_admin_group.chat_id, user.id, False)
         # If the user explicitly asks for help, show the help text
         elif len(parts) > 1 and parts[1].lower() == 'help':
             send_help(chat.id, HELP_STRINGS)
