@@ -55,7 +55,7 @@ I have lots of handy features, such as flood control, a warning system, a note k
 
 *Helpful commands*:
 - /start: Starts me! You've probably already used this.
-- /help: Sends this message; I'll tell you more about myself!
+- /settings: Sends this message; I'll tell you more about myself!
 
 {}
 All commands can be used with the following: / !
@@ -112,7 +112,7 @@ for module_name in ALL_MODULES:
 # do not async
 def send_help(chat_id, text, keyboard=None):
     if not keyboard:
-        keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
+        keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "settings"))
     dispatcher.bot.send_message(chat_id=chat_id,
                                 text=text,
                                 parse_mode=ParseMode.MARKDOWN,
@@ -241,7 +241,7 @@ def start(bot: Bot, update: Update, args: List[str]):
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
                 [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
-                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about")]
+                [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
             ])
 
             if PM_START_PHOTO_ID:
@@ -305,10 +305,23 @@ def error_callback(bot, update, error):
 @run_async
 def help_button(bot: Bot, update: Update):
     query = update.callback_query
-    mod_match = re.match(r"help_module\((.+?)\)", query.data)
-    prev_match = re.match(r"help_prev\((.+?)\)", query.data)
-    next_match = re.match(r"help_next\((.+?)\)", query.data)
-    back_match = re.match(r"help_back", query.data)
+    data = query.data
+    msg = query.message
+
+    # If user clicked the main Help button, show the help listing in-place
+    if data == "settings":
+        keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "settings"))
+        if msg.photo:
+            msg.edit_caption(caption=HELP_STRINGS, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+        else:
+            msg.edit_text(HELP_STRINGS, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+        bot.answer_callback_query(query.id)
+        return
+
+    mod_match = re.match(r"settings_module\((.+?)\)", data)
+    prev_match = re.match(r"settings_prev\((.+?)\)", data)
+    next_match = re.match(r"settings_next\((.+?)\)", data)
+    back_match = re.match(r"settings_back", data)
     try:
         if mod_match:
             module = mod_match.group(1)
@@ -317,26 +330,26 @@ def help_button(bot: Bot, update: Update):
             query.message.reply_text(text=text,
                                      parse_mode=ParseMode.MARKDOWN,
                                      reply_markup=InlineKeyboardMarkup(
-                                         [[InlineKeyboardButton(text="Back", callback_data="help_back")]]))
+                                         [[InlineKeyboardButton(text="Back", callback_data="settings_back")]]))
 
         elif prev_match:
             curr_page = int(prev_match.group(1))
             query.message.reply_text(HELP_STRINGS,
                                      parse_mode=ParseMode.MARKDOWN,
                                      reply_markup=InlineKeyboardMarkup(
-                                         paginate_modules(curr_page - 1, HELPABLE, "help")))
+                                         paginate_modules(curr_page - 1, HELPABLE, "settings")))
 
         elif next_match:
             next_page = int(next_match.group(1))
             query.message.reply_text(HELP_STRINGS,
                                      parse_mode=ParseMode.MARKDOWN,
                                      reply_markup=InlineKeyboardMarkup(
-                                         paginate_modules(next_page + 1, HELPABLE, "help")))
+                                         paginate_modules(next_page + 1, HELPABLE, "settings")))
 
         elif back_match:
             query.message.reply_text(text=HELP_STRINGS,
                                      parse_mode=ParseMode.MARKDOWN,
-                                     reply_markup=InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help")))
+                                     reply_markup=InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "settings")))
 
         # ensure no spinny white circle
         bot.answer_callback_query(query.id)
@@ -376,7 +389,7 @@ def about_button(bot: Bot, update: Update):
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
                 [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
-                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about")]
+                [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
             ])
             if msg.photo:
                 msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
@@ -410,11 +423,7 @@ def get_help(bot: Bot, update: Update):
         module = args[1].lower()
         text = "Here is the available help for the *{}* module:\n".format(HELPABLE[module].__mod_name__) \
                + HELPABLE[module].__help__
-        send_help(chat.id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="help_back")]]))
-
-    else:
-        send_help(chat.id, HELP_STRINGS)
-
+        send_help(chat.id, text, InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="settings_back")]]))
 
 def send_settings(chat_id, user_id, user=False):
     if user:
@@ -527,7 +536,11 @@ def get_settings(bot: Bot, update: Update):
             text = "Click here to check your settings."
 
     else:
-        send_settings(chat.id, user.id, True)
+        parts = msg.text.split()
+        if len(parts) == 1 or (len(parts) > 1 and parts[1].lower() == 'help'):
+            send_help(chat.id, HELP_STRINGS)
+        else:
+            send_settings(chat.id, user.id, True)
 
 
 
@@ -556,8 +569,8 @@ def main():
     genid_handler = CommandHandler("genid", genid, pass_args=True)
     start_handler = CommandHandler("start", start, pass_args=True)
 
-    help_handler = CommandHandler("help", get_help)
-    help_callback_handler = CallbackQueryHandler(help_button, pattern=r"help_")
+    # /help command migrated to /settings (handled inside get_settings for PM usage)
+    help_callback_handler = CallbackQueryHandler(help_button, pattern=r"^settings")
     about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|start_back)$")
 
     settings_handler = CommandHandler("settings", get_settings)
@@ -569,7 +582,6 @@ def main():
     dispatcher.add_handler(test_handler)
     dispatcher.add_handler(genid_handler)
     dispatcher.add_handler(start_handler)
-    dispatcher.add_handler(help_handler)
     dispatcher.add_handler(settings_handler)
     dispatcher.add_handler(help_callback_handler)
     dispatcher.add_handler(about_callback_handler)
