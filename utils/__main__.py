@@ -564,48 +564,32 @@ def get_settings(bot: Bot, update: Update):
         parts = msg.text.split()
         # Default behavior: no args -> show the user's settings in PM
         if len(parts) == 1:
-            # Check if user has an active connection OR is admin in any groups
+            # Check if user has an active connection (flag logic)
             connected_chat = connection_sql.get_connected_chat(user.id)
             
+            # Flag: True if connected, False if not connected
+            has_connection = bool(connected_chat)
+            
+            # Debug message to show flag status
+            msg.reply_text(f"Flag Status: {has_connection}")
+            
             if connected_chat:
-                # User has an active connection, show settings for that chat
+                # User has an active connection (flag is True), show settings for that chat
                 try:
-                    if is_user_admin(dispatcher.bot.getChat(connected_chat.chat_id), user.id):
-                        send_settings(connected_chat.chat_id, user.id, False)
-                        return
+                    send_settings(connected_chat.chat_id, user.id, False)
                 except (BadRequest, TelegramError):
                     # Connection exists but chat is not accessible, disconnect user
                     connection_sql.disconnect(user.id)
-            
-            # No active connection, check for admin groups
-            all_chats = users_sql.get_all_chats()
-            user_admin_groups = []
-            
-            for chat_obj in all_chats:
-                try:
-                    # Check if the user is an admin in this group
-                    if is_user_admin(dispatcher.bot.getChat(chat_obj.chat_id), user.id):
-                        user_admin_groups.append(chat_obj)
-                except (BadRequest, TelegramError):
-                    # Chat might not be accessible or user might have left
-                    continue
-            
-            has_groups = bool(user_admin_groups)  # Flag: True if user is admin in any group, False otherwise
-            
-            # Debug message to show flag status
-            msg.reply_text(f"Flag Status: {has_groups}")
-            
-            # If the user is not an admin in any group, show a helpful message
-            if not has_groups:
-                text = (
-                    "<b>😢 No groups found.</b>\n\n"
-                    "If a group in which <b>you are an administrator doesn't appear</b> here:\n"
-                    "• Send <code>/settings</code> in the group and then press \"Open in pvt\"")
-                msg.reply_text(text=text, parse_mode=ParseMode.HTML)
+                    text = (
+                        "<b>😢 No connected group found.</b>\n\n"
+                        "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
+                    msg.reply_text(text=text, parse_mode=ParseMode.HTML)
             else:
-                # Show group settings selector for the first group where user is admin
-                first_admin_group = user_admin_groups[0]
-                send_settings(first_admin_group.chat_id, user.id, False)
+                # No active connection (flag is False), show message to connect
+                text = (
+                    "<b>😢 No connected group found.</b>\n\n"
+                    "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
+                msg.reply_text(text=text, parse_mode=ParseMode.HTML)
         # If the user explicitly asks for help, show the help text
         elif len(parts) > 1 and parts[1].lower() == 'help':
             send_help(chat.id, HELP_STRINGS)
