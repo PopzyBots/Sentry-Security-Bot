@@ -57,7 +57,8 @@ def connect_chat(bot, update, args):
                 connection_status = sql.connect(update.effective_message.from_user.id, connect_chat)
                 if connection_status:
                     chat_name = dispatcher.bot.getChat(connected(bot, update, chat, user.id, need_admin=False)).title
-                    update.effective_message.reply_text("Successfully connected to *{}*".format(chat_name), parse_mode=ParseMode.MARKDOWN)
+                    # Flag is now set to True (active connection exists)
+                    update.effective_message.reply_text("Successfully connected to *{}*\n\nFlag Status: True".format(chat_name), parse_mode=ParseMode.MARKDOWN)
 
                     #Add chat to connection history
                     history = sql.get_history(user.id)
@@ -111,7 +112,8 @@ def disconnect_chat(bot, update):
     if update.effective_chat.type == 'private':
         disconnection_status = sql.disconnect(update.effective_message.from_user.id)
         if disconnection_status:
-            sql.disconnected_chat = update.effective_message.reply_text("Disconnected from chat!")
+            # Flag is now set to False (no active connection)
+            sql.disconnected_chat = update.effective_message.reply_text("Disconnected from chat!\n\nFlag Status: False")
             # Rebuild user's keyboard — feature removed; skipping rebuild
             LOGGER.info("Keyboard module removed; skipping keyboard rebuild for user %s", update.effective_message.from_user.id)
         else:
