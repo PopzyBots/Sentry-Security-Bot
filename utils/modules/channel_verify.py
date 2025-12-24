@@ -75,6 +75,37 @@ def welcome_mute(bot: Bot, update: Update):
         
         user_id = new_member.id
         
+        # Debug: Send channel membership info
+        debug_messages = [f"🔍 <b>Debug Info for User {user_id} ({new_member.first_name})</b>\n"]
+        
+        for i, channel_id in enumerate(REQUIRED_CHANNELS, 1):
+            try:
+                member = bot.get_chat_member(channel_id, user_id)
+                channel_info = bot.get_chat(channel_id)
+                channel_name = channel_info.title if channel_info.title else f"Channel {i}"
+                
+                debug_messages.append(
+                    f"\n<b>Channel {i}:</b> {channel_name}\n"
+                    f"├ Channel ID: <code>{channel_id}</code>\n"
+                    f"├ User ID: <code>{user_id}</code>\n"
+                    f"├ Status: <code>{member.status}</code>\n"
+                    f"├ Is Member: {'✅' if member.status in ['member', 'administrator', 'creator'] else '❌'}\n"
+                    f"└ Raw Data: <code>{member}</code>"
+                )
+            except (BadRequest, TelegramError) as e:
+                debug_messages.append(
+                    f"\n<b>Channel {i}:</b> Error\n"
+                    f"├ Channel ID: <code>{channel_id}</code>\n"
+                    f"├ User ID: <code>{user_id}</code>\n"
+                    f"└ Error: <code>{str(e)}</code>"
+                )
+        
+        # Send debug info
+        try:
+            message.reply_text("".join(debug_messages), parse_mode='HTML', quote=False)
+        except:
+            pass
+        
         # Check if user is in all required channels
         if check_all_channels(bot, user_id):
             # User is in all channels, don't mute
