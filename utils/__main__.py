@@ -564,9 +564,10 @@ def get_settings(bot: Bot, update: Update):
             # If the bot does not appear to be connected to any group, show a helpful message
             if not CHAT_SETTINGS:
                 text = (
-                    "<b>No groups found.😢</b>\n\n"
+                    "<b>😢 No groups found.</b>\n\n"
                     "If a group in which <b>you are an administrator doesn't appear</b> here:\n"
-                    "- Send <code>/settings</code> in the group and then press \"Open in pvt\"")
+                    " • Send /reload in the group and try again\n"
+                    " • Send <code>/settings</code> in the group and then press \"Open in pvt\"")
                 msg.reply_text(text=text, parse_mode=ParseMode.HTML)
             else:
                 send_settings(chat.id, user.id, True)
