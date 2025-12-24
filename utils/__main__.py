@@ -64,10 +64,21 @@ Core commands for moderation, security, and group management.
 /adminlist – Display the list of admins
 
 """
-# PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
+# PM_START_PHOTO_ID can be set via environment variable or /genid store command
 # Example: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
 import os
 PM_START_PHOTO_ID = os.getenv("PM_START_PHOTO_ID", "")
+
+# Try to load from saved file if environment variable is not set
+if not PM_START_PHOTO_ID:
+    try:
+        saved_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pm_start_photo_id.txt")
+        if os.path.exists(saved_file):
+            with open(saved_file, "r", encoding="utf-8") as f:
+                PM_START_PHOTO_ID = f.read().strip()
+            LOGGER.info("Loaded PM start photo id from saved file")
+    except Exception:
+        pass  # Silently fail if file can't be read
 
 # Note: bundled sample image, automatic upload and caching have been removed. Use /genid store to manually set the file id.
 
@@ -220,7 +231,10 @@ def genid(bot: Bot, update: Update, args: List[str]):
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(file_id)
         PM_START_PHOTO_ID = file_id
-        update.effective_message.reply_text("File id stored and will be used for the PM start message.")
+        update.effective_message.reply_text(
+            f"✅ File id stored and will be used for the PM start message.\n\n<b>File ID:</b> <code>{file_id}</code>",
+            parse_mode=ParseMode.HTML
+        )
         LOGGER.info("PM start photo id updated via /genid by owner %s", user.id)
     except Exception as e:
         LOGGER.exception("Failed to store PM start photo id via /genid")
