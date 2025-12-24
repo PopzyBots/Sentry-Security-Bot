@@ -265,7 +265,7 @@ def start(bot: Bot, update: Update, args: List[str]):
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
-                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
+                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
                 [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
             ])
 
@@ -397,6 +397,8 @@ def about_button(bot: Bot, update: Update):
     try:
         # Determine whether the message is a photo (edit caption) or text (edit text)
         msg = query.message
+        user = update.effective_user
+        
         if data == "about":
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
             if msg.photo:
@@ -404,6 +406,37 @@ def about_button(bot: Bot, update: Update):
             else:
                 msg.edit_text(ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             bot.answer_callback_query(query.id)
+        elif data == "manage_settings":
+            # Same behavior as /settings command
+            bot.answer_callback_query(query.id)
+            msg.delete()
+            
+            # Check if user has an active connection (flag logic)
+            connected_chat = connection_sql.get_connected_chat(user.id)
+            
+            # Flag: True if connected, False if not connected
+            has_connection = bool(connected_chat)
+            
+            # Debug message to show flag status
+            dispatcher.bot.send_message(user.id, f"Flag Status: {has_connection}")
+            
+            if connected_chat:
+                # User has an active connection (flag is True), show settings for that chat
+                try:
+                    send_settings(connected_chat.chat_id, user.id, False)
+                except (BadRequest, TelegramError):
+                    # Connection exists but chat is not accessible, disconnect user
+                    connection_sql.disconnect(user.id)
+                    text = (
+                        "<b>😢 No connected group found.</b>\n\n"
+                        "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
+                    dispatcher.bot.send_message(user.id, text=text, parse_mode=ParseMode.HTML)
+            else:
+                # No active connection (flag is False), show message to connect
+                text = (
+                    "<b>😢 No connected group found.</b>\n\n"
+                    "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
+                dispatcher.bot.send_message(user.id, text=text, parse_mode=ParseMode.HTML)
         elif data == "start_back":
             # Rebuild the original start message and keyboard
             first_name = update.effective_user.first_name
@@ -413,7 +446,7 @@ def about_button(bot: Bot, update: Update):
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
-                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
+                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", callback_data="manage_settings")],
                 [InlineKeyboardButton(text="Help", callback_data="settings"), InlineKeyboardButton(text="About", callback_data="about")]
             ])
             if msg.photo:
@@ -639,7 +672,7 @@ def main():
 
     # /help command migrated to /settings (handled inside get_settings for PM usage)
     help_callback_handler = CallbackQueryHandler(help_button, pattern=r"^settings")
-    about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|start_back)$")
+    about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|start_back|manage_settings)$")
 
     settings_handler = CommandHandler("settings", get_settings)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
