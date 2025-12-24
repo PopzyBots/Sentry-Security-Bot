@@ -169,4 +169,20 @@ def migrate_chat(old_chat_id, new_chat_id):
         SESSION.commit()
 
 
+def del_chat(chat_id):
+    """Remove a chat from the database when bot leaves or is removed."""
+    with INSERTION_LOCK:
+        # Delete chat members first due to foreign key constraints
+        chat_members = SESSION.query(ChatMembers).filter(ChatMembers.chat == str(chat_id)).all()
+        for member in chat_members:
+            SESSION.delete(member)
+        
+        # Then delete the chat itself
+        chat = SESSION.query(Chats).get(str(chat_id))
+        if chat:
+            SESSION.delete(chat)
+        
+        SESSION.commit()
+
+
 ensure_bot_in_db()
