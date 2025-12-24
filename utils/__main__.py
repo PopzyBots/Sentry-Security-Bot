@@ -334,9 +334,9 @@ def help_button(bot: Bot, update: Update):
     if data == "settings":
         keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "settings"))
         if msg.photo:
-            msg.edit_caption(caption=HELP_STRINGS, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+            msg.edit_caption(caption=HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         else:
-            msg.edit_text(HELP_STRINGS, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+            msg.edit_text(HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         bot.answer_callback_query(query.id)
         return
 
