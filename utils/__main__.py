@@ -216,14 +216,15 @@ def genid(bot: Bot, update: Update, args: List[str]):
     file_id = photo.file_id
     try:
         # Persist to disk so it survives restarts (optional helper for admins).
-        with open(os.path.join(os.path.dirname(__file__), "pm_start_photo_id.txt"), "w", encoding="utf-8") as f:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pm_start_photo_id.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(file_id)
         PM_START_PHOTO_ID = file_id
         update.effective_message.reply_text("File id stored and will be used for the PM start message.")
         LOGGER.info("PM start photo id updated via /genid by owner %s", user.id)
-    except Exception:
+    except Exception as e:
         LOGGER.exception("Failed to store PM start photo id via /genid")
-        update.effective_message.reply_text("Failed to save file id to disk.")
+        update.effective_message.reply_text(f"Failed to save file id to disk.\nError: {str(e)}\n\nTry checking file permissions in the bot directory.")
 
 
 @run_async
