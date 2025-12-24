@@ -54,12 +54,16 @@ def paginate_modules(page_n: int, module_dict: Dict, prefix, chat=None) -> List:
 
 
     pairs = [modules[i * 3 : (i + 1) * 3] for i in range((len(modules) + 3 - 1) // 3)]
-    round_num = len(modules) / 3
-    calc = len(modules) - round(round_num)
-    if calc == 1:
-        pairs.append((modules[-1],))
-    elif calc == 2:
-        pairs.append((modules[-1],))
+    
+    # The list comprehension above already handles all modules including remainders
+    # No need to append remaining modules again
+    
+#    round_num = len(modules) / 3
+#    calc = len(modules) - round(round_num)
+#    if calc == 1:
+#        pairs.append((modules[-1],))
+#    elif calc == 2:
+#        pairs.append((modules[-1],))
 
 
 #    pairs = list(zip(modules[::2], modules[1::2]))
@@ -75,6 +79,10 @@ def paginate_modules(page_n: int, module_dict: Dict, prefix, chat=None) -> List:
 #        pairs = pairs[modulo_page * 7:7 * (modulo_page + 1)] + [
 #            (EqInlineKeyboardButton("<", callback_data="{}_prev({})".format(prefix, modulo_page)),
 #             EqInlineKeyboardButton(">", callback_data="{}_next({})".format(prefix, modulo_page)))]
+
+    # Add Back button at the end for settings (stngs prefix)
+    if chat and prefix == "stngs":
+        pairs.append((EqInlineKeyboardButton("Back", callback_data="start_back"),))
 
     return pairs
 
