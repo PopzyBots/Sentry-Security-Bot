@@ -443,9 +443,9 @@ def send_settings(chat_id, user_id, user=False):
     else:
         if CHAT_SETTINGS:
             chat_name = dispatcher.bot.getChat(chat_id).title
-            dispatcher.bot.send_message(user_id,
-                                        text="Which module would you like to check {}'s settings for?".format(
-                                            chat_name),
+            text = "<b>SETTINGS\nGroup:</b> <code>{}</code>\n\n<i>Select one of the settings that you want to change.</i>".format(
+                html.escape(chat_name))
+            dispatcher.bot.send_message(user_id, text=text, parse_mode=ParseMode.HTML,
                                         reply_markup=InlineKeyboardMarkup(
                                             paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)))
         else:
