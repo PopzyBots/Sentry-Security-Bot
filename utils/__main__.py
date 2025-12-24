@@ -214,16 +214,16 @@ def start(bot: Bot, update: Update, args: List[str]):
 Sentry is a powerful group security and moderation bot built to keep your Telegram communities safe, organized, and spam-free.
 It works silently in the background, enforcing rules, managing users, and automating moderation so admins can focus on their community—not chaos.
 
-⚙️ Features
+⚙️ <b>Features</b>
 
-🛡️ Advanced moderation tools (ban, mute, warn, kick)
-🚫 Anti-spam & flood protection
-🔒 Message locks and content restrictions
-👋 Custom welcome & goodbye messages
-🤖 Auto-filters and saved notes
-📊 Useful group utilities & admin tools
-🌍 Optional global moderation controls
-⚡ Fast, reliable, and lightweight
+• 🛡️ Advanced moderation tools (ban, mute, warn, kick)
+• 🚫 Anti-spam & flood protection
+• 🔒 Message locks and content restrictions
+• 👋 Custom welcome & goodbye messages
+• 🤖 Auto-filters and saved notes
+• 📊 Useful group utilities & admin tools
+• 🌍 Optional global moderation controls
+• ⚡ Fast, reliable, and lightweight
 """
                 update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
 
