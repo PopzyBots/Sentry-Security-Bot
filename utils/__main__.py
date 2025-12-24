@@ -332,11 +332,10 @@ def help_button(bot: Bot, update: Update):
 
     # If user clicked the main Help button, show the help listing in-place
     if data == "settings":
-        keyboard = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "settings"))
         if msg.photo:
-            msg.edit_caption(caption=HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            msg.edit_caption(caption=HELP_TEXT, parse_mode=ParseMode.HTML)
         else:
-            msg.edit_text(HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            msg.edit_text(HELP_TEXT, parse_mode=ParseMode.HTML)
         bot.answer_callback_query(query.id)
         return
 
