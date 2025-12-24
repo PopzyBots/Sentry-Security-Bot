@@ -21,7 +21,7 @@ from utils.modules.helper_funcs.misc import paginate_modules
 PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
 
-<i>I keep chats clean, safe, and fully under control 🛡️</i>
+<i>I'll keep chats clean, safe, and fully under control.</i>
 """
 
 ABOUT_TEXT = """🤖 <b>About</b>
