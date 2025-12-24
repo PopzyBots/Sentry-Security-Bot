@@ -435,36 +435,52 @@ def about_button(bot: Bot, update: Update):
                 msg.edit_text(ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             bot.answer_callback_query(query.id)
         elif data == "manage_settings":
-            # Same behavior as /settings command
-            bot.answer_callback_query(query.id)
-            msg.delete()
-            
             # Check if user has an active connection (flag logic)
             connected_chat = connection_sql.get_connected_chat(user.id)
-            
-            # Flag: True if connected, False if not connected
-            has_connection = bool(connected_chat)
-            
-            # Debug message to show flag status
-            dispatcher.bot.send_message(user.id, f"Flag Status: {has_connection}")
             
             if connected_chat:
                 # User has an active connection (flag is True), show settings for that chat
                 try:
-                    send_settings(connected_chat.chat_id, user.id, False)
+                    if CHAT_SETTINGS:
+                        chat_name = dispatcher.bot.getChat(connected_chat.chat_id).title
+                        text = "<b>SETTINGS\nGroup:</b> <code>{}</code>\n\n<i>Select one of the settings that you want to change.</i>".format(
+                            html.escape(chat_name))
+                        keyboard = InlineKeyboardMarkup(paginate_modules(0, CHAT_SETTINGS, "stngs", chat=connected_chat.chat_id))
+                        
+                        # Edit the existing message instead of sending a new one
+                        if msg.photo:
+                            msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                        else:
+                            msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                    else:
+                        text = "Seems like there aren't any chat settings available :'(\nSend this in a group chat you're admin in to find its current settings!"
+                        if msg.photo:
+                            msg.edit_caption(caption=text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]]))
+                        else:
+                            msg.edit_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]]))
                 except (BadRequest, TelegramError):
                     # Connection exists but chat is not accessible, disconnect user
                     connection_sql.disconnect(user.id)
                     text = (
                         "<b>😢 No connected group found.</b>\n\n"
                         "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
-                    dispatcher.bot.send_message(user.id, text=text, parse_mode=ParseMode.HTML)
+                    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
+                    if msg.photo:
+                        msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                    else:
+                        msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             else:
                 # No active connection (flag is False), show message to connect
                 text = (
                     "<b>😢 No connected group found.</b>\n\n"
                     "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
-                dispatcher.bot.send_message(user.id, text=text, parse_mode=ParseMode.HTML)
+                keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
+                if msg.photo:
+                    msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                else:
+                    msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            
+            bot.answer_callback_query(query.id)
         elif data == "start_back":
             # Rebuild the original start message and keyboard
             first_name = update.effective_user.first_name
