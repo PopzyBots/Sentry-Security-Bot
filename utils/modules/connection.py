@@ -120,6 +120,42 @@ def disconnect_chat(bot, update):
         update.effective_message.reply_text("Usage restricted to PMs only")
 
 
+@run_async
+def connection_info(bot: Bot, update: Update):
+    """Show current connection information including Group ID and Group Name."""
+    user = update.effective_user  # type: Optional[User]
+    chat = update.effective_chat  # type: Optional[Chat]
+    
+    if chat.type != chat.PRIVATE:
+        update.effective_message.reply_text("This command is only available in private messages.")
+        return
+    
+    # Check if user has an active connection
+    connected_chat = sql.get_connected_chat(user.id)
+    
+    if connected_chat:
+        try:
+            chat_info = bot.getChat(connected_chat.chat_id)
+            text = (
+                "<b>📡 Connection Information</b>\n\n"
+                "<b>Group Name:</b> <code>{}</code>\n"
+                "<b>Group ID:</b> <code>{}</code>\n\n"
+                "<i>You are currently connected to this group.</i>"
+            ).format(chat_info.title, connected_chat.chat_id)
+            update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
+        except (BadRequest, Exception) as e:
+            update.effective_message.reply_text(
+                "Error retrieving connection information. The group may no longer be accessible.\n"
+                "Use /disconnect to clear this connection."
+            )
+            LOGGER.error("Error getting connection info for user %s: %s", user.id, str(e))
+    else:
+        update.effective_message.reply_text(
+            "You are not currently connected to any group.\n"
+            "Use /connect <chat_id> to connect to a group."
+        )
+
+
 def connected(bot, update, chat, user_id, need_admin=True):
     if chat.type == chat.PRIVATE and sql.get_connected_chat(user_id):
         conn_id = sql.get_connected_chat(user_id).chat_id
@@ -151,6 +187,7 @@ Actions are available with connected groups:
  • More in future!
 
  - /connect <chatid>: Connect to remote chat
+ - /connections: Show current connection info (Group ID and Name)
  - /disconnect: Disconnect from chat
  - /allowconnect on/yes/off/no: Allow connect users to group
 """
@@ -158,9 +195,11 @@ Actions are available with connected groups:
 __mod_name__ = "Connections"
 
 CONNECT_CHAT_HANDLER = CommandHandler("connect", connect_chat, allow_edited=True, pass_args=True)
+CONNECTION_INFO_HANDLER = CommandHandler("connections", connection_info, allow_edited=True)
 DISCONNECT_CHAT_HANDLER = CommandHandler("disconnect", disconnect_chat, allow_edited=True)
 ALLOW_CONNECTIONS_HANDLER = CommandHandler("allowconnect", allow_connections, allow_edited=True, pass_args=True)
 
 dispatcher.add_handler(CONNECT_CHAT_HANDLER)
+dispatcher.add_handler(CONNECTION_INFO_HANDLER)
 dispatcher.add_handler(DISCONNECT_CHAT_HANDLER)
 dispatcher.add_handler(ALLOW_CONNECTIONS_HANDLER)
