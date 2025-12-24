@@ -15,7 +15,7 @@ from utils.modules.helper_funcs.string_handling import extract_time
 
 # from utils.modules.translations.strings import tld
 
-from utils.modules.keyboard import keyboard
+# The keyboard module was removed; do not import it.
 
 @user_admin
 @run_async
@@ -91,8 +91,8 @@ def connect_chat(bot, update, args):
                         print(history.user_id, history.chat_id1, history.chat_id2, history.chat_id3, history.updated)
                     else:
                         sql.add_history(user.id, connect_chat, "0", "0", 2)
-                    #Rebuild user's keyboard
-                    keyboard(bot, update)
+                    # Rebuild user's keyboard — feature removed; skipping rebuild
+                    LOGGER.info("Keyboard module removed; skipping keyboard rebuild for user %s", user.id)
                     
                 else:
                     update.effective_message.reply_text("Connection failed!")
@@ -112,8 +112,8 @@ def disconnect_chat(bot, update):
         disconnection_status = sql.disconnect(update.effective_message.from_user.id)
         if disconnection_status:
             sql.disconnected_chat = update.effective_message.reply_text("Disconnected from chat!")
-            #Rebuild user's keyboard
-            keyboard(bot, update)
+            # Rebuild user's keyboard — feature removed; skipping rebuild
+            LOGGER.info("Keyboard module removed; skipping keyboard rebuild for user %s", update.effective_message.from_user.id)
         else:
            update.effective_message.reply_text("Disconnection unsuccessfull!")
     else:
