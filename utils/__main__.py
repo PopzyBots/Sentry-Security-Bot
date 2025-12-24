@@ -364,16 +364,10 @@ def help_button(bot: Bot, update: Update):
     # If user clicked the main Help button, show the help listing in-place
     if data == "settings":
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
-        # Remove photo and show text only
-        try:
-            msg.delete()
-            dispatcher.bot.send_message(query.message.chat.id, HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        except BadRequest:
-            # Fallback to edit if delete fails
-            if msg.photo:
-                msg.edit_caption(caption=HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-            else:
-                msg.edit_text(HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        if msg.photo:
+            msg.edit_caption(caption=HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        else:
+            msg.edit_text(HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         bot.answer_callback_query(query.id)
         return
 
@@ -447,16 +441,10 @@ def about_button(bot: Bot, update: Update):
         
         if data == "about":
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
-            # Remove photo and show text only
-            try:
-                msg.delete()
-                dispatcher.bot.send_message(query.message.chat.id, ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-            except BadRequest:
-                # Fallback to edit if delete fails
-                if msg.photo:
-                    msg.edit_caption(caption=ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                else:
-                    msg.edit_text(ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            if msg.photo:
+                msg.edit_caption(caption=ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                msg.edit_text(ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             bot.answer_callback_query(query.id)
         elif data == "manage_settings":
             # Check if user has an active connection (flag logic)
@@ -471,27 +459,17 @@ def about_button(bot: Bot, update: Update):
                             html.escape(chat_name))
                         keyboard = InlineKeyboardMarkup(paginate_modules(0, CHAT_SETTINGS, "stngs", chat=connected_chat.chat_id))
                         
-                        # Remove photo and show text only
-                        try:
-                            msg.delete()
-                            dispatcher.bot.send_message(user.id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                        except BadRequest:
-                            # Fallback to edit if delete fails
-                            if msg.photo:
-                                msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                            else:
-                                msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                        # Edit the existing message instead of sending a new one
+                        if msg.photo:
+                            msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                        else:
+                            msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
                     else:
                         text = "Seems like there aren't any chat settings available :'(\nSend this in a group chat you're admin in to find its current settings!"
-                        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
-                        try:
-                            msg.delete()
-                            dispatcher.bot.send_message(user.id, text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
-                        except BadRequest:
-                            if msg.photo:
-                                msg.edit_caption(caption=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
-                            else:
-                                msg.edit_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+                        if msg.photo:
+                            msg.edit_caption(caption=text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]]))
+                        else:
+                            msg.edit_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]]))
                 except (BadRequest, TelegramError):
                     # Connection exists but chat is not accessible, disconnect user
                     connection_sql.disconnect(user.id)
@@ -499,28 +477,20 @@ def about_button(bot: Bot, update: Update):
                         "<b>😢 No connected group found.</b>\n\n"
                         "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
                     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
-                    try:
-                        msg.delete()
-                        dispatcher.bot.send_message(user.id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                    except BadRequest:
-                        if msg.photo:
-                            msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                        else:
-                            msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                    if msg.photo:
+                        msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                    else:
+                        msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             else:
                 # No active connection (flag is False), show message to connect
                 text = (
                     "<b>😢 No connected group found.</b>\n\n"
                     "To manage group settings, use <code>/connect &lt;chat_id&gt;</code> to connect to a group.")
                 keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
-                try:
-                    msg.delete()
-                    dispatcher.bot.send_message(user.id, text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                except BadRequest:
-                    if msg.photo:
-                        msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                    else:
-                        msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                if msg.photo:
+                    msg.edit_caption(caption=text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+                else:
+                    msg.edit_text(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             
             bot.answer_callback_query(query.id)
         elif data == "start_back":
@@ -548,19 +518,10 @@ def about_button(bot: Bot, update: Update):
             
             keyboard = InlineKeyboardMarkup(keyboard_buttons)
             
-            # Restore photo for welcome screen
-            try:
-                msg.delete()
-                if PM_START_PHOTO_ID:
-                    dispatcher.bot.send_photo(user.id, photo=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                else:
-                    dispatcher.bot.send_message(user.id, start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-            except BadRequest:
-                # Fallback to edit if operations fail
-                if msg.photo:
-                    msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-                else:
-                    msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            if msg.photo:
+                msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             bot.answer_callback_query(query.id)
     except BadRequest as excp:
         LOGGER.exception("Exception in about button handler. %s", str(excp))
@@ -649,19 +610,14 @@ def settings_button(bot: Bot, update: Update):
         
         keyboard = InlineKeyboardMarkup(keyboard_buttons)
         
-        # Restore photo for welcome screen from settings
         try:
-            msg.delete()
-            if PM_START_PHOTO_ID:
-                dispatcher.bot.send_photo(user.id, photo=PM_START_PHOTO_ID, caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-            else:
-                dispatcher.bot.send_message(user.id, start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
-        except BadRequest:
-            # Fallback
             if msg.photo:
                 msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
             else:
                 msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+        except BadRequest:
+            msg.delete()
+            dispatcher.bot.send_message(user.id, start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
         bot.answer_callback_query(query.id)
         return
     
