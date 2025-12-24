@@ -567,6 +567,9 @@ def get_settings(bot: Bot, update: Update):
             all_chats = users_sql.get_all_chats()
             has_groups = bool(all_chats)  # Flag: True if connected to groups, False otherwise
             
+            # Display flag status for debugging
+            msg.reply_text(f"<b>Flag Status:</b> <code>{has_groups}</code>", parse_mode=ParseMode.HTML)
+            
             # If the bot is not connected to any group, show a helpful message
             if not has_groups:
                 text = (
