@@ -575,7 +575,10 @@ def get_settings(bot: Bot, update: Update):
                     "• Send <code>/settings</code> in the group and then press \"Open in pvt\"")
                 msg.reply_text(text=text, parse_mode=ParseMode.HTML)
             else:
-                send_settings(chat.id, user.id, True)
+                # Show group settings selector with buttons for the first available group
+                # Or show settings for groups where user is admin
+                first_group = all_chats[0]
+                send_settings(first_group.chat_id, user.id, False)
         # If the user explicitly asks for help, show the help text
         elif len(parts) > 1 and parts[1].lower() == 'help':
             send_help(chat.id, HELP_STRINGS)
