@@ -24,21 +24,19 @@ PM_START_TEXT = """
 <i>I'll keep chats clean, safe, and fully under control.</i>
 """
 
-ABOUT_TEXT = """🤖 <b>About</b>
+ABOUT_TEXT = """<b>About</b>
 
-Sentry is a powerful group security and moderation bot built to keep your Telegram communities safe, organized, and spam-free.
-It works silently in the background, enforcing rules, managing users, and automating moderation so admins can focus on their community—not chaos.
+Sentry is a group security and moderation bot built to protect Telegram communities from spam, abuse, and disorder through automated rule enforcement.
 
-⚙️ <b>Features</b>
+<b>Features</b>
 
-• Advanced moderation tools (ban, mute, warn, kick)
-• Anti-spam & flood protection
-• Message locks and content restrictions
-• Custom welcome & goodbye messages
-• Auto-filters and saved notes
-• Useful group utilities & admin tools
-• Optional global moderation controls
-• Fast, reliable, and lightweight
+• Moderation tools (ban, mute, warn, kick)  
+• Anti-spam and flood protection  
+• Content locks and restrictions  
+• Custom welcome and goodbye messages  
+• Filters, notes, and admin utilities  
+• Optional global moderation  
+• Lightweight and fast
 """
 
 # PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
