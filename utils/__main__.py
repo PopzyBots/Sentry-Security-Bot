@@ -19,6 +19,7 @@ from utils.modules.helper_funcs.chat_status import is_user_admin
 from utils.modules.helper_funcs.misc import paginate_modules
 from utils.modules.sql import users_sql
 from utils.modules.sql.users_sql import del_chat
+from utils.modules.sql import connection_sql
 
 PM_START_TEXT = """
 👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
@@ -563,7 +564,20 @@ def get_settings(bot: Bot, update: Update):
         parts = msg.text.split()
         # Default behavior: no args -> show the user's settings in PM
         if len(parts) == 1:
-            # Check if bot is in groups where THIS USER is an admin
+            # Check if user has an active connection OR is admin in any groups
+            connected_chat = connection_sql.get_connected_chat(user.id)
+            
+            if connected_chat:
+                # User has an active connection, show settings for that chat
+                try:
+                    if is_user_admin(dispatcher.bot.getChat(connected_chat.chat_id), user.id):
+                        send_settings(connected_chat.chat_id, user.id, False)
+                        return
+                except (BadRequest, TelegramError):
+                    # Connection exists but chat is not accessible, disconnect user
+                    connection_sql.disconnect(user.id)
+            
+            # No active connection, check for admin groups
             all_chats = users_sql.get_all_chats()
             user_admin_groups = []
             
@@ -578,8 +592,8 @@ def get_settings(bot: Bot, update: Update):
             
             has_groups = bool(user_admin_groups)  # Flag: True if user is admin in any group, False otherwise
             
-            # Display flag status for debugging
-            msg.reply_text(f"<b>Flag Status:</b> <code>{has_groups}</code>", parse_mode=ParseMode.HTML)
+            # Debug message to show flag status
+            msg.reply_text(f"Flag Status: {has_groups}")
             
             # If the user is not an admin in any group, show a helpful message
             if not has_groups:
