@@ -24,6 +24,24 @@ PM_START_TEXT = """
 <i>I keep chats clean, safe, and fully under control 🛡️</i>
 """
 
+ABOUT_TEXT = """🤖 <b>About</b>
+📌 Description
+
+Sentry is a powerful group security and moderation bot built to keep your Telegram communities safe, organized, and spam-free.
+It works silently in the background, enforcing rules, managing users, and automating moderation so admins can focus on their community—not chaos.
+
+⚙️ <b>Features</b>
+
+• 🛡️ Advanced moderation tools (ban, mute, warn, kick)
+• 🚫 Anti-spam & flood protection
+• 🔒 Message locks and content restrictions
+• 👋 Custom welcome & goodbye messages
+• 🤖 Auto-filters and saved notes
+• 📊 Useful group utilities & admin tools
+• 🌍 Optional global moderation controls
+• ⚡ Fast, reliable, and lightweight
+"""
+
 # PM_START_PHOTO_ID is fetched only from the environment. Set the env var PM_START_PHOTO_ID to a Telegram file_id
 # Example: PM_START_PHOTO_ID=AgACAgUAAxkBAANDaUNt19igRloquRr_a0_pDk4P4WkAAoALaxvJIyFWRDreG7mSpR8ACAEAAwIAA3kABx4E
 import os
@@ -207,25 +225,8 @@ def start(bot: Bot, update: Update, args: List[str]):
                     send_settings(match.group(1), update.effective_user.id, True)
 
             elif args[0].lower() == "about":
-                # About message
-                about_text = """🤖 <b>About</b>
-📌 Description
-
-Sentry is a powerful group security and moderation bot built to keep your Telegram communities safe, organized, and spam-free.
-It works silently in the background, enforcing rules, managing users, and automating moderation so admins can focus on their community—not chaos.
-
-⚙️ <b>Features</b>
-
-• 🛡️ Advanced moderation tools (ban, mute, warn, kick)
-• 🚫 Anti-spam & flood protection
-• 🔒 Message locks and content restrictions
-• 👋 Custom welcome & goodbye messages
-• 🤖 Auto-filters and saved notes
-• 📊 Useful group utilities & admin tools
-• 🌍 Optional global moderation controls
-• ⚡ Fast, reliable, and lightweight
-"""
-                update.effective_message.reply_text(about_text, parse_mode=ParseMode.HTML)
+                # About message (legacy /start about)
+                update.effective_message.reply_text(ABOUT_TEXT, parse_mode=ParseMode.HTML)
 
             elif args[0][1:].isdigit() and "rules" in IMPORTED:
                 IMPORTED["rules"].send_rules(update, args[0], from_pm=True)
@@ -240,7 +241,7 @@ It works silently in the background, enforcing rules, managing users, and automa
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
                 [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
-                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", url="t.me/{}?start=about".format(bot.username))]
+                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about")]
             ])
 
             if PM_START_PHOTO_ID:
@@ -349,6 +350,45 @@ def help_button(bot: Bot, update: Update):
             pass
         else:
             LOGGER.exception("Exception in help buttons. %s", str(query.data))
+
+
+@run_async
+def about_button(bot: Bot, update: Update):
+    query = update.callback_query
+    data = query.data
+    try:
+        # Determine whether the message is a photo (edit caption) or text (edit text)
+        msg = query.message
+        if data == "about":
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data="start_back")]])
+            if msg.photo:
+                msg.edit_caption(caption=ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                msg.edit_text(ABOUT_TEXT, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            bot.answer_callback_query(query.id)
+        elif data == "start_back":
+            # Rebuild the original start message and keyboard
+            first_name = update.effective_user.first_name
+            start_text = PM_START_TEXT.format(
+                first=html.escape(first_name),
+                botname=html.escape(bot.first_name),
+            )
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton(text="➕ Add me to a Group ➕", url="t.me/{}?startgroup=true".format(bot.username))],
+                [InlineKeyboardButton(text="⚙️ Manage Group Settings ✍️", url="t.me/{}?start=settings".format(bot.username))],
+                [InlineKeyboardButton(text="Help", url="t.me/{}?start=help".format(bot.username)), InlineKeyboardButton(text="About", callback_data="about")]
+            ])
+            if msg.photo:
+                msg.edit_caption(caption=start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            else:
+                msg.edit_text(start_text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
+            bot.answer_callback_query(query.id)
+    except BadRequest as excp:
+        LOGGER.exception("Exception in about button handler. %s", str(excp))
+        try:
+            bot.answer_callback_query(query.id, text="Action failed.")
+        except Exception:
+            pass
 
 
 @run_async
@@ -518,6 +558,7 @@ def main():
 
     help_handler = CommandHandler("help", get_help)
     help_callback_handler = CallbackQueryHandler(help_button, pattern=r"help_")
+    about_callback_handler = CallbackQueryHandler(about_button, pattern=r"^(about|start_back)$")
 
     settings_handler = CommandHandler("settings", get_settings)
     settings_callback_handler = CallbackQueryHandler(settings_button, pattern=r"stngs_")
@@ -531,6 +572,7 @@ def main():
     dispatcher.add_handler(help_handler)
     dispatcher.add_handler(settings_handler)
     dispatcher.add_handler(help_callback_handler)
+    dispatcher.add_handler(about_callback_handler)
     dispatcher.add_handler(settings_callback_handler)
     dispatcher.add_handler(migrate_handler)
 
