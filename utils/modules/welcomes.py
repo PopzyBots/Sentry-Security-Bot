@@ -212,7 +212,6 @@ def new_member(bot: Bot, update: Update):
 
                 sent = send(update, res, keyboard,
                             sql.DEFAULT_WELCOME.format(first=first_name))  # type: Optional[Message]
-            delete_join(bot, update)
 
         prev_welc = sql.get_clean_pref(chat.id)
         if prev_welc:
@@ -223,6 +222,9 @@ def new_member(bot: Bot, update: Update):
 
             if sent:
                 sql.set_clean_welcome(chat.id, sent.message_id)
+        
+        # Delete join service message after processing all members
+        delete_join(bot, update)
 
 
 @run_async
@@ -259,7 +261,7 @@ def left_member(bot: Bot, update: Update):
                 else:
                     username = mention
 
-                res = valid_format.format(first=escape_markdown(first_name),
+                res = cust_goodbye.format(first=escape_markdown(first_name),
                                           last=escape_markdown(left_mem.last_name or first_name),
                                           fullname=escape_markdown(fullname), username=username, mention=mention,
                                           count=count, chatname=escape_markdown(chat.title), id=left_mem.id)
@@ -273,6 +275,8 @@ def left_member(bot: Bot, update: Update):
             keyboard = InlineKeyboardMarkup(keyb)
 
             send(update, res, keyboard, sql.DEFAULT_GOODBYE)
+            
+            # Delete leave service message
             delete_join(bot, update)
 
 @run_async
