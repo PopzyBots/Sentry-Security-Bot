@@ -122,7 +122,7 @@ def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
         sql.set_del_joined(str(chat.id), True)
         update.effective_message.reply_text("I'll try to delete old joined messages!")
         return "<b>{}:</b>" \
-               "\n#CLEAN_SERVICE_MESSAGE" \
+               "\n#SENTRY #CLEAN_SERVICE_MESSAGE" \
                "\n<b>Admin:</b> {}" \
                "\nHas toggled join deletion to <code>ON</code>.".format(html.escape(chat.title),
                                                                          mention_html(user.id, user.first_name))
@@ -130,7 +130,7 @@ def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
         sql.set_del_joined(str(chat.id), False)
         update.effective_message.reply_text("I won't delete old joined messages.")
         return "<b>{}:</b>" \
-               "\n#CLEAN_SERVICE_MESSAGE" \
+               "\n#SENTRY #CLEAN_SERVICE_MESSAGE" \
                "\n<b>Admin:</b> {}" \
                "\nHas toggled joined deletion to <code>OFF</code>.".format(html.escape(chat.title),
                                                                           mention_html(user.id, user.first_name))
@@ -432,7 +432,7 @@ def set_welcome(bot: Bot, update: Update):
 
     return (
         f"<b>{html.escape(chat.title)}</b>\n"
-        f"#SET_WELCOME\n"
+        f"#SENTRY #SET_WELCOME\n"
         f"Admin: {mention_html(user.id, user.first_name)}"
     )
 
@@ -445,7 +445,7 @@ def reset_welcome(bot: Bot, update: Update) -> str:
     sql.set_custom_welcome(chat.id, sql.DEFAULT_WELCOME, sql.Types.TEXT)
     update.effective_message.reply_text("Successfully reset welcome message to default!")
     return "<b>{}:</b>" \
-           "\n#RESET_WELCOME" \
+           "\n#SENTRY #RESET_WELCOME" \
            "\n<b>Admin:</b> {}" \
            "\nReset the welcome message to default.".format(html.escape(chat.title),
                                                             mention_html(user.id, user.first_name))
@@ -466,7 +466,7 @@ def set_goodbye(bot: Bot, update: Update) -> str:
     sql.set_custom_gdbye(chat.id, content or text, data_type, buttons)
     msg.reply_text("Successfully set custom goodbye message!")
     return "<b>{}:</b>" \
-           "\n#SET_GOODBYE" \
+           "\n#SENTRY #SET_GOODBYE" \
            "\n<b>Admin:</b> {}" \
            "\nSet the goodbye message.".format(html.escape(chat.title),
                                                mention_html(user.id, user.first_name))
@@ -481,7 +481,7 @@ def reset_goodbye(bot: Bot, update: Update) -> str:
     sql.set_custom_gdbye(chat.id, sql.DEFAULT_GOODBYE, sql.Types.TEXT)
     update.effective_message.reply_text("Successfully reset goodbye message to default!")
     return "<b>{}:</b>" \
-           "\n#RESET_GOODBYE" \
+           "\n#SENTRY #RESET_GOODBYE" \
            "\n<b>Admin:</b> {}" \
            "\nReset the goodbye message.".format(html.escape(chat.title),
                                                  mention_html(user.id, user.first_name))
@@ -506,7 +506,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
         sql.set_clean_welcome(str(chat.id), True)
         update.effective_message.reply_text("I'll try to delete old welcome messages!")
         return "<b>{}:</b>" \
-               "\n#CLEAN_WELCOME" \
+               "\n#SENTRY #CLEAN_WELCOME" \
                "\n<b>Admin:</b> {}" \
                "\nHas toggled clean welcomes to <code>ON</code>.".format(html.escape(chat.title),
                                                                          mention_html(user.id, user.first_name))
@@ -514,7 +514,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
         sql.set_clean_welcome(str(chat.id), False)
         update.effective_message.reply_text("I won't delete old welcome messages.")
         return "<b>{}:</b>" \
-               "\n#CLEAN_WELCOME" \
+               "\n#SENTRY #CLEAN_WELCOME" \
                "\n<b>Admin:</b> {}" \
                "\nHas toggled clean welcomes to <code>OFF</code>.".format(html.escape(chat.title),
                                                                           mention_html(user.id, user.first_name))
