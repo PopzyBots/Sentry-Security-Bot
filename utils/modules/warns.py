@@ -388,8 +388,23 @@ def __migrate__(old_chat_id, new_chat_id):
 def __chat_settings__(chat_id, user_id):
     num_warn_filters = sql.num_warn_chat_filters(chat_id)
     limit, soft_warn = sql.get_warn_setting(chat_id)
-    return "This chat has `{}` warn filters. It takes `{}` warns " \
-           "before the user gets *{}*.".format(num_warn_filters, limit, "kicked" if soft_warn else "banned")
+    action = "kick" if soft_warn else "ban"
+    
+    return """⚠️ *Warnings Module*
+This module lets admins warn users for rule violations and automatically take action when the warn limit is reached.
+
+*Available commands:*
+• /warn — Warn a user
+• /warns — Check a user's warnings
+• /resetwarns — Reset warnings for a user
+• /addwarn — Add a custom warn filter
+• /nowarn — Remove a warn filter
+• /warnlimit — Set the warn limit
+• /strongwarn — Set action (kick/ban)
+
+*Status:*
+Warn filters: `{}`
+Warn limit: `{}` warnings → automatic {}""".format(num_warn_filters, limit, action)
 
 
 __help__ = """
