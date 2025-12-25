@@ -90,7 +90,19 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return "This chat has had it's rules set: `{}`".format(bool(sql.get_rules(chat_id)))
+    rules_set = bool(sql.get_rules(chat_id))
+    status = "Yes" if rules_set else "No"
+    
+    return """📖 *Rules Module*
+This module helps admins define and share group rules so members know what's allowed and what's not.
+
+*Available commands:*
+• /rules — View the group rules
+• /setrules — Set or update rules
+• /clearrules — Remove current rules
+
+*Status:*
+Rules configured: `{}`""".format(status)
 
 
 __help__ = """
