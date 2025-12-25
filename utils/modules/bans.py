@@ -80,7 +80,7 @@ def ban(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     log = "<b>{}:</b>" \
-          "\n#BANNED" \
+          "\n#SENTRY #BANNED" \
           "\n<b>Admin:</b> {}" \
           "\n<b>User:</b> {}".format(html.escape(chat.title), mention_html(user.id, user.first_name),
                                      mention_html(member.user.id, member.user.first_name))
@@ -160,7 +160,7 @@ def temp_ban(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     log = "<b>{}:</b>" \
-          "\n#TEMP BANNED" \
+          "\n#SENTRY #TEMP BANNED" \
           "\n<b>Admin:</b> {}" \
           "\n<b>User:</b> {}" \
           "\n<b>Time:</b> {}".format(html.escape(chat.title), mention_html(user.id, user.first_name),
@@ -225,7 +225,7 @@ def kick(bot: Bot, update: Update, args: List[str]) -> str:
         bot.send_sticker(chat.id, BAN_STICKER)  # banhammer marie sticker
         message.reply_text("Kicked!")
         log = "<b>{}:</b>" \
-              "\n#KICKED" \
+              "\n#SENTRY #KICKED" \
               "\n<b>Admin:</b> {}" \
               "\n<b>User:</b> {}".format(html.escape(chat.title),
                                          mention_html(user.id, user.first_name),
@@ -293,7 +293,7 @@ def unban(bot: Bot, update: Update, args: List[str]) -> str:
     message.reply_text("Yep, this user can join!")
 
     log = "<b>{}:</b>" \
-          "\n#UNBANNED" \
+          "\n#SENTRY #UNBANNED" \
           "\n<b>Admin:</b> {}" \
           "\n<b>User:</b> {}".format(html.escape(chat.title),
                                      mention_html(user.id, user.first_name),
