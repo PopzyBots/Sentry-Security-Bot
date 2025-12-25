@@ -216,9 +216,8 @@ def track_message(bot: Bot, update: Update):
             active_chats.add(chat.id)
             LOGGER.info(f"Added chat {chat.id} to verification tracking")
 
-def periodic_verification_job(context):
+def periodic_verification_job(bot, job):
     """Periodically verify all members in tracked groups."""
-    bot = context.bot
     LOGGER.debug(f"Running periodic verification for {len(active_chats)} chats...")
     
     for chat_id in list(active_chats):
