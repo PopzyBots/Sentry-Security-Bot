@@ -22,7 +22,7 @@ from utils.modules.sql.users_sql import del_chat
 from utils.modules.sql import connection_sql
 
 PM_START_TEXT = """
-👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot.</b>
+👋 <b>Hey {first}, I'm {botname} — your smart security and moderation bot created solely for Popzy Movies Group.</b>
 
 <i>I'll keep chats clean, safe, and fully under control.</i>
 """
