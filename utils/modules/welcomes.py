@@ -151,14 +151,18 @@ def delete_join(bot: Bot, update: Update):
 @run_async
 def new_member(bot: Bot, update: Update):
     chat = update.effective_chat  # type: Optional[Chat]
-
-    should_welc, cust_welcome, welc_type = sql.get_welc_pref(chat.id)
-    if should_welc:
-        sent = None
-        new_members = update.effective_message.new_chat_members
-        for new_mem in new_members:
-            # Give the owner a special welcome
-            if new_mem.id == OWNER_ID:
+    
+    try:
+        should_welc, cust_welcome, welc_type = sql.get_welc_pref(chat.id)
+        LOGGER.info(f"New member event in chat {chat.id}, welcome enabled: {should_welc}")
+        
+        if should_welc:
+            sent = None
+            new_members = update.effective_message.new_chat_members
+            for new_mem in new_members:
+                LOGGER.info(f"User {new_mem.id} ({new_mem.first_name}) joined chat {chat.id}")
+                # Give the owner a special welcome
+                if new_mem.id == OWNER_ID:
                 update.effective_message.reply_text("Master is in the houseeee, let's get this party started!")
                 continue
 
@@ -225,6 +229,9 @@ def new_member(bot: Bot, update: Update):
         
         # Delete join service message after processing all members
         delete_join(bot, update)
+    
+    except Exception as e:
+        LOGGER.exception(f"Error in new_member handler: {e}")
 
 
 @run_async
