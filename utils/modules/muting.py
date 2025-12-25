@@ -42,7 +42,7 @@ def mute(bot: Bot, update: Update, args: List[str]) -> str:
             bot.restrict_chat_member(chat.id, user_id, can_send_messages=False)
             message.reply_text("👍🏻 muted! 🤐")
             return "<b>{}:</b>" \
-                   "\n#MUTE" \
+                   "\n#SENTRY #MUTE" \
                    "\n<b>Admin:</b> {}" \
                    "\n<b>User:</b> {}".format(html.escape(chat.title),
                                               mention_html(user.id, user.first_name),
@@ -84,7 +84,7 @@ def unmute(bot: Bot, update: Update, args: List[str]) -> str:
                                      can_add_web_page_previews=True)
             message.reply_text("Unmuted!")
             return "<b>{}:</b>" \
-                   "\n#UNMUTE" \
+                   "\n#SENTRY #UNMUTE" \
                    "\n<b>Admin:</b> {}" \
                    "\n<b>User:</b> {}".format(html.escape(chat.title),
                                               mention_html(user.id, user.first_name),
@@ -147,7 +147,7 @@ def temp_mute(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     log = "<b>{}:</b>" \
-          "\n#TEMP MUTED" \
+          "\n#SENTRY #TEMP MUTED" \
           "\n<b>Admin:</b> {}" \
           "\n<b>User:</b> {}" \
           "\n<b>Time:</b> {}".format(html.escape(chat.title), mention_html(user.id, user.first_name),
