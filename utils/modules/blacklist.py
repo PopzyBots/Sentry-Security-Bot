@@ -136,7 +136,17 @@ def __migrate__(old_chat_id, new_chat_id):
 
 def __chat_settings__(chat_id, user_id):
     blacklisted = sql.num_blacklist_chat_filters(chat_id)
-    return "There are {} blacklisted words.".format(blacklisted)
+    return """🚫 *Blacklists Module*
+This module helps keep the chat clean by automatically blocking unwanted words, phrases, and patterns. Messages containing blacklisted content are deleted instantly.
+
+*Available commands:*
+• /blacklist — View blacklisted words
+• /addblacklist — Add a word or phrase to the blacklist
+• /rmblacklist — Remove a word or phrase from the blacklist
+
+*Status:*
+Blacklisted words: `{}`
+Blacklist enforcement: `Enabled`""".format(blacklisted)
 
 
 def __stats__():
