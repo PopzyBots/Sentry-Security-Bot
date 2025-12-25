@@ -136,10 +136,25 @@ if is_module_loaded(FILENAME):
     def __chat_settings__(chat_id, user_id):
         log_channel = sql.get_chat_log_channel(chat_id)
         if log_channel:
-            log_channel_info = dispatcher.bot.get_chat(log_channel)
-            return "This group has all it's logs sent to: {} (`{}`)".format(escape_markdown(log_channel_info.title),
-                                                                            log_channel)
-        return "No log channel is set for this group!"
+            try:
+                log_channel_info = dispatcher.bot.get_chat(log_channel)
+                channel_name = escape_markdown(log_channel_info.title)
+                status = f"Set to {channel_name} (`{log_channel}`)"
+            except:
+                status = f"Set (ID: `{log_channel}`)"
+        else:
+            status = "Not set"
+        
+        return """📜 *Loggings Module*
+This module keeps a record of important admin and moderation actions such as bans, mutes, warns, and message deletions by sending them to a designated log channel.
+
+*Available commands:*
+• /logchannel — View current log channel
+• /setlog — Set the log channel
+• /unsetlog — Unset the log channel
+
+*Status:*
+Log channel: {}""".format(status)
 
 
     __help__ = """
