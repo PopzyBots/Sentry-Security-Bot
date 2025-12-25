@@ -163,72 +163,72 @@ def new_member(bot: Bot, update: Update):
                 LOGGER.info(f"User {new_mem.id} ({new_mem.first_name}) joined chat {chat.id}")
                 # Give the owner a special welcome
                 if new_mem.id == OWNER_ID:
-                update.effective_message.reply_text("Master is in the houseeee, let's get this party started!")
-                continue
+                    update.effective_message.reply_text("Master is in the houseeee, let's get this party started!")
+                    continue
 
-            # Don't welcome yourself
-            elif new_mem.id == bot.id:
-                continue
+                # Don't welcome yourself
+                elif new_mem.id == bot.id:
+                    continue
 
-            else:
-                # If welcome message is media, send with appropriate function
-                if welc_type not in (sql.Types.TEXT.value, sql.Types.BUTTON_TEXT.value):
-                    ENUM_FUNC_MAP[welc_type](chat.id, cust_welcome)
-                    return
-                # else, move on
-                first_name = new_mem.first_name or "PersonWithNoName"  # edge case of empty name - occurs for some bugs.
-
-                if cust_welcome:
-                    if new_mem.last_name:
-                        fullname = "{} {}".format(first_name, new_mem.last_name)
-                    else:
-                        fullname = first_name
-                    count = chat.get_members_count()
-                    mention = mention_markdown(new_mem.id, escape_markdown(first_name))
-                    if new_mem.username:
-                        username = "@" + escape_markdown(new_mem.username)
-                    else:
-                        username = mention
-
-                    res = cust_welcome.format(
-                        first=html.escape(first_name),
-                        last=html.escape(new_mem.last_name or first_name),
-                        fullname=html.escape(fullname),
-                        username=username,
-                        mention=mention_html(new_mem.id, first_name),
-                        count=count,
-                        chatname=html.escape(chat.title),
-                        id=new_mem.id,
-                    )
-
-                    # Some parsers escape '[' and ']' as '\[' '\]' which causes a literal backslash to
-                    # appear in sent messages (e.g., "Hello Nibin \[6448...] "). Undo those escapes
-                    # so placeholders like `[{id}]` render as expected.
-                    res = res.replace("\\[", "[").replace("\\]", "]")
-
-                    buttons = sql.get_welc_buttons(chat.id)
-                    keyb = build_keyboard(buttons)
                 else:
-                    res = sql.DEFAULT_WELCOME.format(first=first_name)
-                    keyb = []
+                    # If welcome message is media, send with appropriate function
+                    if welc_type not in (sql.Types.TEXT.value, sql.Types.BUTTON_TEXT.value):
+                        ENUM_FUNC_MAP[welc_type](chat.id, cust_welcome)
+                        return
+                    # else, move on
+                    first_name = new_mem.first_name or "PersonWithNoName"  # edge case of empty name - occurs for some bugs.
 
-                keyboard = InlineKeyboardMarkup(keyb)
+                    if cust_welcome:
+                        if new_mem.last_name:
+                            fullname = "{} {}".format(first_name, new_mem.last_name)
+                        else:
+                            fullname = first_name
+                        count = chat.get_members_count()
+                        mention = mention_markdown(new_mem.id, escape_markdown(first_name))
+                        if new_mem.username:
+                            username = "@" + escape_markdown(new_mem.username)
+                        else:
+                            username = mention
 
-                sent = send(update, res, keyboard,
-                            sql.DEFAULT_WELCOME.format(first=first_name))  # type: Optional[Message]
+                        res = cust_welcome.format(
+                            first=html.escape(first_name),
+                            last=html.escape(new_mem.last_name or first_name),
+                            fullname=html.escape(fullname),
+                            username=username,
+                            mention=mention_html(new_mem.id, first_name),
+                            count=count,
+                            chatname=html.escape(chat.title),
+                            id=new_mem.id,
+                        )
 
-        prev_welc = sql.get_clean_pref(chat.id)
-        if prev_welc:
-            try:
-                bot.delete_message(chat.id, prev_welc)
-            except BadRequest as excp:
-                pass
+                        # Some parsers escape '[' and ']' as '\[' '\]' which causes a literal backslash to
+                        # appear in sent messages (e.g., "Hello Nibin \[6448...] "). Undo those escapes
+                        # so placeholders like `[{id}]` render as expected.
+                        res = res.replace("\\[", "[").replace("\\]", "]")
 
-            if sent:
-                sql.set_clean_welcome(chat.id, sent.message_id)
-        
-        # Delete join service message after processing all members
-        delete_join(bot, update)
+                        buttons = sql.get_welc_buttons(chat.id)
+                        keyb = build_keyboard(buttons)
+                    else:
+                        res = sql.DEFAULT_WELCOME.format(first=first_name)
+                        keyb = []
+
+                    keyboard = InlineKeyboardMarkup(keyb)
+
+                    sent = send(update, res, keyboard,
+                                sql.DEFAULT_WELCOME.format(first=first_name))  # type: Optional[Message]
+
+            prev_welc = sql.get_clean_pref(chat.id)
+            if prev_welc:
+                try:
+                    bot.delete_message(chat.id, prev_welc)
+                except BadRequest as excp:
+                    pass
+
+                if sent:
+                    sql.set_clean_welcome(chat.id, sent.message_id)
+            
+            # Delete join service message after processing all members
+            delete_join(bot, update)
     
     except Exception as e:
         LOGGER.exception(f"Error in new_member handler: {e}")
