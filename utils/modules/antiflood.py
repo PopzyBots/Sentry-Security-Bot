@@ -38,7 +38,7 @@ def check_flood(bot: Bot, update: Update) -> str:
         msg.reply_text("dont disturb others you are No need for this group anymore...")
 
         return "<b>{}:</b>" \
-               "\n#BANNED" \
+               "\n#SENTRY #BANNED" \
                "\n<b>User:</b> {}" \
                "\nFlooded the group.".format(html.escape(chat.title),
                                              mention_html(user.id, user.first_name))
@@ -47,7 +47,7 @@ def check_flood(bot: Bot, update: Update) -> str:
         msg.reply_text("You cannot use this service as long as you do not give me Permissions.")
         sql.set_flood(chat.id, 0)
         return "<b>{}:</b>" \
-               "\n#INFO" \
+               "\n#SENTRY #INFO" \
                "\nDon't have kick permissions, so automatically disabled antiflood.".format(chat.title)
 
 
@@ -72,7 +72,7 @@ def set_flood(bot: Bot, update: Update, args: List[str]) -> str:
                 sql.set_flood(chat.id, 0)
                 message.reply_text("I will no longer dismiss those who flood.")
                 return "<b>{}:</b>" \
-                       "\n#SETFLOOD" \
+                       "\n#SENTRY #SETFLOOD" \
                        "\n<b>Admin:</b> {}" \
                        "\nDisabled antiflood.".format(html.escape(chat.title), mention_html(user.id, user.first_name))
 
@@ -84,7 +84,7 @@ def set_flood(bot: Bot, update: Update, args: List[str]) -> str:
                 sql.set_flood(chat.id, amount)
                 message.reply_text("Message control {} has been added to count ".format(amount))
                 return "<b>{}:</b>" \
-                       "\n#SETFLOOD" \
+                       "\n#SENTRY #SETFLOOD" \
                        "\n<b>Admin:</b> {}" \
                        "\nSet antiflood to <code>{}</code>.".format(html.escape(chat.title),
                                                                     mention_html(user.id, user.first_name), amount)
