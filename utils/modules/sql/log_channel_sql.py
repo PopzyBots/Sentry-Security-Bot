@@ -59,6 +59,13 @@ def num_logchannels():
         SESSION.close()
 
 
+def get_all_log_channels():
+    try:
+        return SESSION.query(GroupLogs).all()
+    finally:
+        SESSION.close()
+
+
 def migrate_chat(old_chat_id, new_chat_id):
     with LOGS_INSERTION_LOCK:
         chat = SESSION.query(GroupLogs).get(str(old_chat_id))
