@@ -101,6 +101,11 @@ def welcome_mute(bot: Bot, update: Update):
     if chat.type not in ['group', 'supergroup']:
         return
     
+    # Track this chat for periodic verification
+    if chat.id not in active_chats:
+        active_chats.add(chat.id)
+        LOGGER.info(f"Added chat {chat.id} to verification tracking")
+    
     # Check if bot has permission to restrict members
     bot_member = chat.get_member(bot.id)
     if not bot_member.can_restrict_members:
@@ -207,52 +212,38 @@ Set these environment variables:
 # Track active chats for periodic verification
 active_chats = set()
 
-@run_async
-def track_message(bot: Bot, update: Update):
-    """Track chats where the bot is active for periodic verification."""
-    chat = update.effective_chat
-    if chat and chat.type in ['group', 'supergroup']:
-        if chat.id not in active_chats:
-            active_chats.add(chat.id)
-            LOGGER.info(f"Added chat {chat.id} to verification tracking")
-
-def periodic_verification_job(bot, job):
-    """Periodically verify all members in tracked groups."""
-    LOGGER.debug(f"Running periodic verification for {len(active_chats)} chats...")
-    
-    for chat_id in list(active_chats):
-        try:
-            chat = bot.get_chat(chat_id)
-            
-            # Check if bot still has permissions
-            bot_member = chat.get_member(bot.id)
-            if not bot_member.can_restrict_members:
-                continue
-            
-            # Get chat members and verify them
-            try:
-                # Get recent chat members (administrators as a sample)
-                administrators = chat.get_administrators()
-                for admin in administrators:
-                    if not admin.user.is_bot:
-                        verify_and_restrict_user(bot, chat_id, admin.user.id, admin.user.first_name)
-            except (BadRequest, TelegramError) as e:
-                LOGGER.debug(f"Could not verify members in chat {chat_id}: {e}")
-                
-        except (BadRequest, TelegramError) as e:
-            LOGGER.debug(f"Error accessing chat {chat_id}: {e}")
-            # Remove chat if it's no longer accessible
-            active_chats.discard(chat_id)
-
 
 WELCOME_MUTE_HANDLER = MessageHandler(Filters.status_update.new_chat_members, welcome_mute)
-CHAT_TRACKER_HANDLER = MessageHandler(Filters.all, track_message)
 
 dispatcher.add_handler(WELCOME_MUTE_HANDLER)
-dispatcher.add_handler(CHAT_TRACKER_HANDLER)
 
 # Add periodic verification job (every 5 seconds)
 if REQUIRED_CHANNELS:
     job_queue = updater.job_queue
     job_queue.run_repeating(periodic_verification_job, interval=5, first=10)
     LOGGER.info("Channel verification: Periodic verification enabled (every 5 seconds)")
+
+
+__mod_name__ = "Channel Verify"
+
+__help__ = """
+*Channel Verification*
+
+Automatically mutes new members who join the group unless they are members of all required channels.
+
+*Features:*
+• Verifies new members on join
+• Verifies all existing members when bot is added
+• Periodic verification every 5 seconds
+
+*Admin Commands:*
+This module works automatically in the background.
+
+*Configuration:*
+Set these environment variables:
+• `REQUIRED_CHANNEL_1` - First required channel ID
+• `REQUIRED_CHANNEL_2` - Second required channel ID  
+• `REQUIRED_CHANNEL_3` - Third required channel ID
+
+*Note:* Bot must have "Restrict Members" permission to use this feature.
+"""
