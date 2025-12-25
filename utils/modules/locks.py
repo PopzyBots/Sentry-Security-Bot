@@ -296,7 +296,37 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return build_lock_message(chat_id)
+    locks = sql.get_locks(chat_id)
+    restr = sql.get_restr(chat_id)
+    
+    # Count active locks
+    lock_count = 0
+    if locks:
+        lock_list = [locks.sticker, locks.audio, locks.voice, locks.document, locks.video, 
+                     locks.contact, locks.photo, locks.gif, locks.url, locks.bots, 
+                     locks.forward, locks.game, locks.location]
+        lock_count += sum(1 for lock in lock_list if lock)
+    
+    if restr:
+        restr_list = [restr.messages, restr.media, restr.other, restr.preview]
+        lock_count += sum(1 for lock in restr_list if lock)
+    
+    if lock_count == 0:
+        status = "None"
+    else:
+        status = f"{lock_count} lock(s) active"
+    
+    return """🔒 *Locks Module*
+This module lets you control what members can send in the group by locking or unlocking specific content types such as links, stickers, media, or commands.
+
+*Available commands:*
+• /lock — Lock a specific feature (links, stickers, media, etc.)
+• /unlock — Unlock a feature
+• /locks — View all active locks
+• /locktypes — View all available lock types
+
+*Status:*
+Active locks: `{}`""".format(status)
 
 
 __help__ = """
