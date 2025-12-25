@@ -280,7 +280,19 @@ def __migrate__(old_chat_id, new_chat_id):
 
 def __chat_settings__(chat_id, user_id):
     notes = sql.get_all_chat_notes(chat_id)
-    return "There are `{}` notes in this chat.".format(len(notes))
+    note_count = len(notes)
+    
+    return """📝 *Notes Module*
+This module lets admins save reusable messages, rules, or media and quickly send them when needed.
+
+*Available commands:*
+• /save — Save a note
+• /get — Retrieve a note
+• /notes — List all saved notes
+• /clear — Delete a note
+
+*Status:*
+Saved notes: `{}`""".format(note_count)
 
 
 __help__ = """
