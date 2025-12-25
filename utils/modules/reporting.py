@@ -111,8 +111,21 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return "This chat is setup to send user reports to admins, via /report and @admin: `{}`".format(
-        sql.chat_should_report(chat_id))
+    is_enabled = sql.chat_should_report(chat_id)
+    status = "Yes" if is_enabled else "No"
+    status_message = "Reports are forwarded to admins" if is_enabled else "Reports are not being forwarded to admins"
+    
+    return """🚨 *Reporting Module*
+This module allows members to report problematic messages to group admins using commands or mentions.
+
+*Available commands:*
+• /report — Report a message to admins
+• @admin — Mention to report (alternative)
+• /reports — Enable or disable reporting
+
+*Status:*
+Reporting enabled: `{}`
+{}""".format(status, status_message)
 
 
 def __user_settings__(user_id):
