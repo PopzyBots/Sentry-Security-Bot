@@ -265,7 +265,24 @@ def __migrate__(old_chat_id, new_chat_id):
 
 def __chat_settings__(chat_id, user_id):
     cust_filters = sql.get_chat_triggers(chat_id)
-    return "There are `{}` custom filters here.".format(len(cust_filters))
+    filter_count = len(cust_filters)
+    if filter_count == 0:
+        status_message = "No filters are currently set in this group"
+    else:
+        status_message = f"{filter_count} filter(s) active in this group"
+    
+    return """🔎 *Filters Module*
+This module lets admins create automatic replies triggered by specific keywords or phrases.
+Perfect for FAQs, rules, or quick responses.
+
+*Available commands:*
+• /filter — Add a new keyword filter
+• /stop — Remove a filter
+• /filters — View all active filters
+
+*Status:*
+Custom filters: `{}`
+{}""".format(filter_count, status_message)
 
 
 __help__ = """
