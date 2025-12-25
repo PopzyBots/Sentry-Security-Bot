@@ -63,13 +63,13 @@ This project is a modernized and restructured version of a classic Telegram mode
 
 You **must** set the following environment variables:
 
-| Variable | Description | Example |
-|--------|------------|---------|
-| `TOKEN` | Telegram bot token | `123456:ABC-DEF...` |
-| `DB_URI` | PostgreSQL connection string | `postgresql://user:pass@host:5432/dbname` |
-| `OWNER_ID` | Telegram user ID of bot owner | `123456789` |
-| `WORKERS` | Number of worker threads | `8` |
-| `ENV` | Runtime mode | `production` |
+|  Variable  |Description                     | Example                                   |
+|------------|--------------------------------|-------------------------------------------|
+|  `TOKEN`   | Telegram bot token             | `123456:ABC-DEF...`                       |
+|  `DB_URI`  | PostgreSQL connection string   | `postgresql://user:pass@host:5432/dbname` |
+| `OWNER_ID` | Telegram user ID of bot owner  | `123456789`                               |
+| `WORKERS`  | Number of worker threads       | `8`                                       |
+|   `ENV`    | Runtime mode                   | `production`                              |
 
 Optional:
 - `LOG_CHANNEL`
@@ -94,13 +94,13 @@ python -m utils
 
 You **must** set the following environment variables:
 
-| Variable | Description | Example |
-|--------|------------|---------|
-| `TOKEN` | Telegram bot token | `123456:ABC-DEF...` |
-| `DB_URI` | PostgreSQL connection string | `postgresql://user:pass@host:5432/dbname` |
-| `OWNER_ID` | Telegram user ID of bot owner | `123456789` |
-| `WORKERS` | Number of worker threads | `8` |
-| `ENV` | Runtime mode | `production` |
+|  Variable  |Description                     | Example                                   |
+|------------|--------------------------------|-------------------------------------------|
+|  `TOKEN`   | Telegram bot token             | `123456:ABC-DEF...`                       |
+|  `DB_URI`  | PostgreSQL connection string   | `postgresql://user:pass@host:5432/dbname` |
+| `OWNER_ID` | Telegram user ID of bot owner  | `123456789`                               |
+| `WORKERS`  | Number of worker threads       | `8`                                       |
+|   `ENV`    | Runtime mode                   | `production`                              |
 
 Optional:
 - `LOG_CHANNEL`
