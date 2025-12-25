@@ -48,7 +48,7 @@ def purge(bot: Bot, update: Update, args: List[str]) -> str:
                     LOGGER.exception("Error while purging chat messages.")
 
             return "<b>{}:</b>" \
-                   "\n#PURGE" \
+                   "\n#SENTRY #PURGE" \
                    "\n<b>Admin:</b> {}" \
                    "\nPurged <code>{}</code> messages.".format(html.escape(chat.title),
                                                                mention_html(user.id, user.first_name),
@@ -71,7 +71,7 @@ def del_message(bot: Bot, update: Update) -> str:
             update.effective_message.reply_to_message.delete()
             update.effective_message.delete()
             return "<b>{}:</b>" \
-                   "\n#DEL" \
+                   "\n#SENTRY #DEL" \
                    "\n<b>Admin:</b> {}" \
                    "\nMessage deleted.".format(html.escape(chat.title),
                                                mention_html(user.id, user.first_name))
