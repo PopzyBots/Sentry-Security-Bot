@@ -114,9 +114,19 @@ def __migrate__(old_chat_id, new_chat_id):
 def __chat_settings__(chat_id, user_id):
     limit = sql.get_flood_limit(chat_id)
     if limit == 0:
-        return "*Not* currently enforcing flood control."
+        status = "Disabled"
     else:
-        return " The message control is set to `{}`.".format(limit)
+        status = f"Enabled ({limit} messages)"
+    
+    return """🌊 *Anti-Flood Module*
+This module protects the group from message flooding and spam attacks by limiting how frequently users can send messages. When enabled, it automatically takes action against users who exceed the allowed message rate.
+
+*Available commands:*
+• /flood — Check current flood control settings
+• /setflood — Set the maximum number of messages allowed
+
+*Status:*
+Flood control: `{}`""".format(status)
 
 
 __help__ = """
