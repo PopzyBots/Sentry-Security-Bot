@@ -55,7 +55,7 @@ def promote(bot: Bot, update: Update, args: List[str]) -> str:
 
     message.reply_text("promoted🧡")
     return "<b>{}:</b>" \
-           "\n#PROMOTED" \
+           "\n#SENTRY #PROMOTED" \
            "\n<b>Admin:</b> {}" \
            "\n<b>User:</b> {}".format(html.escape(chat.title),
                                       mention_html(user.id, user.first_name),
@@ -102,7 +102,7 @@ def demote(bot: Bot, update: Update, args: List[str]) -> str:
                               can_promote_members=False)
         message.reply_text("Successfully demoted!")
         return "<b>{}:</b>" \
-               "\n#DEMOTED" \
+               "\n#SENTRY #DEMOTED" \
                "\n<b>Admin:</b> {}" \
                "\n<b>User:</b> {}".format(html.escape(chat.title),
                                           mention_html(user.id, user.first_name),
@@ -140,7 +140,7 @@ def pin(bot: Bot, update: Update, args: List[str]) -> str:
             else:
                 raise
         return "<b>{}:</b>" \
-               "\n#PINNED" \
+               "\n#SENTRY #PINNED" \
                "\n<b>Admin:</b> {}".format(html.escape(chat.title), mention_html(user.id, user.first_name))
 
     return ""
@@ -164,7 +164,7 @@ def unpin(bot: Bot, update: Update) -> str:
             raise
 
     return "<b>{}:</b>" \
-           "\n#UNPINNED" \
+           "\n#SENTRY #UNPINNED" \
            "\n<b>Admin:</b> {}".format(html.escape(chat.title),
                                        mention_html(user.id, user.first_name))
 
@@ -214,7 +214,8 @@ def adminlist(bot: Bot, update: Update):
 def __chat_settings__(chat_id, user_id):
     is_admin = dispatcher.bot.get_chat_member(chat_id, user_id).status in ("administrator", "creator")
     return """🛡️ *Admin Module*
-This module helps you manage administrators and their roles within the group. It allows trusted users to assign admin rights, remove them, and manage custom titles—making moderation smoother and more organized.
+This module helps you manage administrators and their roles within the group.
+It allows trusted users to assign admin rights, remove them, and manage custom titles—making moderation smoother and more organized.
 
 *Available commands:*
 • /adminlist — View all current admins in the group
