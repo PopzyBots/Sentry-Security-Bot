@@ -50,6 +50,16 @@ def check_all_channels(bot: Bot, user_id: int) -> bool:
 def verify_and_restrict_user(bot: Bot, chat_id: int, user_id: int, user_name: str = "User"):
     """Verify a user and mute/unmute them based on channel membership."""
     try:
+        # Check if user is admin or owner - skip them
+        try:
+            chat = bot.get_chat(chat_id)
+            member = chat.get_member(user_id)
+            if member.status in ['creator', 'administrator']:
+                LOGGER.debug(f"Skipping verification for {user_id} ({user_name}) - is admin/owner in chat {chat_id}")
+                return None
+        except (BadRequest, TelegramError):
+            pass  # Continue with verification if we can't check status
+        
         if check_all_channels(bot, user_id):
             # User is verified, ensure they're unmuted
             bot.restrict_chat_member(
@@ -182,15 +192,12 @@ def periodic_verification_job(bot, job):
             if not bot_member.can_restrict_members:
                 continue
             
-            # Get chat members and verify them
-            try:
-                # Get recent chat members (administrators as a sample)
-                administrators = chat.get_administrators()
-                for admin in administrators:
-                    if not admin.user.is_bot:
-                        verify_and_restrict_user(bot, chat_id, admin.user.id, admin.user.first_name)
-            except (BadRequest, TelegramError) as e:
-                LOGGER.debug(f"Could not verify members in chat {chat_id}: {e}")
+            # Note: Telegram Bot API doesn't provide a way to get all regular members
+            # We can only get administrators. Regular members will be verified when they:
+            # 1. Join the group (via welcome_mute)
+            # 2. Send a message (if we add a message handler)
+            # For now, periodic verification is mainly a placeholder for future enhancements
+            LOGGER.debug(f"Periodic check for chat {chat_id} - verification happens on member join")
                 
         except (BadRequest, TelegramError) as e:
             LOGGER.debug(f"Error accessing chat {chat_id}: {e}")
