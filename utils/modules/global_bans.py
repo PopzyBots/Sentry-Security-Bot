@@ -294,7 +294,20 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return "This chat is enforcing *gbans*: `{}`.".format(sql.does_chat_gban(chat_id))
+    enforcement_status = "Enabled" if sql.does_chat_gban(chat_id) else "Disabled"
+    
+    return """🌍 *Global Bans Module*
+This module enforces global bans across all groups connected to Sentry.
+Users globally banned by trusted moderators will be automatically removed.
+
+*Available commands:*
+• /gban — Globally ban a user (sudo only)
+• /ungban — Remove a global ban (sudo only)
+• /gbanstat — Enable or disable global ban enforcement
+• /gbanlist — View all globally banned users (sudo only)
+
+*Status:*
+Global bans enforcement: `{}`""".format(enforcement_status)
 
 
 __help__ = """
