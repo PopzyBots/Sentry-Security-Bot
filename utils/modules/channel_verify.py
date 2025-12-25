@@ -236,7 +236,7 @@ active_chats = set()
 
 WELCOME_MUTE_HANDLER = MessageHandler(Filters.status_update.new_chat_members, welcome_mute)
 
-dispatcher.add_handler(WELCOME_MUTE_HANDLER)
+dispatcher.add_handler(WELCOME_MUTE_HANDLER, group=1)
 
 # Add periodic verification job (every 5 seconds)
 if REQUIRED_CHANNELS:
