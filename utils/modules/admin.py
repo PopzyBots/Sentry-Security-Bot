@@ -214,8 +214,7 @@ def adminlist(bot: Bot, update: Update):
 def __chat_settings__(chat_id, user_id):
     is_admin = dispatcher.bot.get_chat_member(chat_id, user_id).status in ("administrator", "creator")
     return """🛡️ *Admin Module*
-This module helps you manage administrators and their roles within the group.
-It allows trusted users to assign admin rights, remove them, and manage custom titles—making moderation smoother and more organized.
+This module helps you manage administrators and their roles within the group. It allows trusted users to assign admin rights, remove them, and manage custom titles—making moderation smoother and more organized.
 
 *Available commands:*
 • /adminlist — View all current admins in the group
