@@ -150,7 +150,9 @@ def delete_join(bot: Bot, update: Update):
 
 @run_async
 def new_member(bot: Bot, update: Update):
+    LOGGER.info(f"=== NEW_MEMBER HANDLER CALLED === Update: {update}")
     chat = update.effective_chat  # type: Optional[Chat]
+    LOGGER.info(f"Chat ID: {chat.id if chat else 'None'}")
     
     try:
         should_welc, cust_welcome, welc_type = sql.get_welc_pref(chat.id)
@@ -641,6 +643,7 @@ CLEAN_WELCOME = CommandHandler("cleanwelcome", clean_welcome, pass_args=True, fi
 DEL_JOINED = CommandHandler("clearjoin", del_joined, pass_args=True, filters=Filters.group)
 WELCOME_HELP = CommandHandler("welcomehelp", welcome_help)
 
+LOGGER.info(f"Registering NEW_MEM_HANDLER for new_chat_members filter")
 
 dispatcher.add_handler(NEW_MEM_HANDLER)
 dispatcher.add_handler(LEFT_MEM_HANDLER)
