@@ -53,7 +53,7 @@ def warn(user: User, chat: Chat, reason: str, message: Message, warner: User = N
         message.bot.send_sticker(chat.id, BAN_STICKER)  # banhammer marie sticker
         keyboard = []
         log_reason = "<b>{}:</b>" \
-                     "\n#WARN_BAN" \
+                     "\n#SENTRY #WARN_BAN" \
                      "\n<b>Admin:</b> {}" \
                      "\n<b>User:</b> {}" \
                      "\n<b>Reason:</b> {}"\
@@ -72,7 +72,7 @@ def warn(user: User, chat: Chat, reason: str, message: Message, warner: User = N
             reply += "\nReason for last warn:\n{}".format(html.escape(reason))
 
         log_reason = "<b>{}:</b>" \
-                     "\n#WARN" \
+                     "\n#SENTRY #WARN" \
                      "\n<b>Admin:</b> {}" \
                      "\n<b>User:</b> {}" \
                      "\n<b>Reason:</b> {}"\
@@ -110,7 +110,7 @@ def button(bot: Bot, update: Update) -> str:
                 parse_mode=ParseMode.HTML)
             user_member = chat.get_member(user_id)
             return "<b>{}:</b>" \
-                   "\n#UNWARN" \
+                   "\n#SENTRY #UNWARN" \
                    "\n<b>Admin:</b> {}" \
                    "\n<b>User:</b> {}".format(html.escape(chat.title),
                                               mention_html(user.id, user.first_name),
@@ -160,7 +160,7 @@ def reset_warns(bot: Bot, update: Update, args: List[str]) -> str:
         message.reply_text("Warnings have been reset!")
         warned = chat.get_member(user_id).user
         return "<b>{}:</b>" \
-               "\n#RESETWARNS" \
+               "\n#SENTRY #RESETWARNS" \
                "\n<b>Admin:</b> {}" \
                "\n<b>User:</b> {}".format(html.escape(chat.title),
                                           mention_html(user.id, user.first_name),
@@ -318,7 +318,7 @@ def set_warn_limit(bot: Bot, update: Update, args: List[str]) -> str:
                 sql.set_warn_limit(chat.id, int(args[0]))
                 msg.reply_text("Updated the warn limit to {}".format(args[0]))
                 return "<b>{}:</b>" \
-                       "\n#SET_WARN_LIMIT" \
+                       "\n#SENTRY #SET_WARN_LIMIT" \
                        "\n<b>Admin:</b> {}" \
                        "\nSet the warn limit to <code>{}</code>".format(html.escape(chat.title),
                                                                         mention_html(user.id, user.first_name), args[0])
