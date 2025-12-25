@@ -169,19 +169,33 @@ def verify_all_members(bot: Bot, chat: Chat):
         LOGGER.error(f"Error verifying all members in chat {chat_id}: {e}")
 
 
-def periodic_verification(context):
-    """Periodically verify all members in all groups."""
-    bot = context.bot
+def periodic_verification_job(bot, job):
+    """Periodically verify all members in tracked groups."""
+    LOGGER.debug(f"Running periodic verification for {len(active_chats)} chats...")
     
-    # Get all chats where bot is present (stored in bot_data or tracked separately)
-    # Note: Telegram doesn't provide a direct way to list all chats
-    # We'll need to track chats when the bot joins them
-    
-    # For now, this will process chats as they're encountered
-    LOGGER.debug("Running periodic verification check...")
-    
-    # You can store chat_ids in bot_data when bot joins groups
-    # For this implementation, we'll rely on the fact that new messages trigger verification
+    for chat_id in list(active_chats):
+        try:
+            chat = bot.get_chat(chat_id)
+            
+            # Check if bot still has permissions
+            bot_member = chat.get_member(bot.id)
+            if not bot_member.can_restrict_members:
+                continue
+            
+            # Get chat members and verify them
+            try:
+                # Get recent chat members (administrators as a sample)
+                administrators = chat.get_administrators()
+                for admin in administrators:
+                    if not admin.user.is_bot:
+                        verify_and_restrict_user(bot, chat_id, admin.user.id, admin.user.first_name)
+            except (BadRequest, TelegramError) as e:
+                LOGGER.debug(f"Could not verify members in chat {chat_id}: {e}")
+                
+        except (BadRequest, TelegramError) as e:
+            LOGGER.debug(f"Error accessing chat {chat_id}: {e}")
+            # Remove chat if it's no longer accessible
+            active_chats.discard(chat_id)
 
 
 __mod_name__ = "Channel Verify"
@@ -222,28 +236,3 @@ if REQUIRED_CHANNELS:
     job_queue = updater.job_queue
     job_queue.run_repeating(periodic_verification_job, interval=5, first=10)
     LOGGER.info("Channel verification: Periodic verification enabled (every 5 seconds)")
-
-
-__mod_name__ = "Channel Verify"
-
-__help__ = """
-*Channel Verification*
-
-Automatically mutes new members who join the group unless they are members of all required channels.
-
-*Features:*
-• Verifies new members on join
-• Verifies all existing members when bot is added
-• Periodic verification every 5 seconds
-
-*Admin Commands:*
-This module works automatically in the background.
-
-*Configuration:*
-Set these environment variables:
-• `REQUIRED_CHANNEL_1` - First required channel ID
-• `REQUIRED_CHANNEL_2` - Second required channel ID  
-• `REQUIRED_CHANNEL_3` - Third required channel ID
-
-*Note:* Bot must have "Restrict Members" permission to use this feature.
-"""
