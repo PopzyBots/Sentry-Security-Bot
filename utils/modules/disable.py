@@ -143,7 +143,26 @@ if is_module_loaded(FILENAME):
 
 
     def __chat_settings__(chat_id, user_id):
-        return build_curr_disabled(chat_id)
+        disabled = sql.get_all_disabled(chat_id)
+        if not disabled:
+            status = "None"
+            message = "All commands are currently enabled"
+        else:
+            status = f"{len(disabled)} command(s)"
+            message = "Some commands are disabled"
+        
+        return """🚫 *Disabling Module*
+This module allows admins to disable specific bot commands in this group, helping reduce clutter and prevent misuse of unnecessary features.
+
+*Available commands:*
+• /disable — Disable a command in this chat
+• /enable — Re-enable a disabled command
+• /disabled — View all disabled commands
+• /listcmds — List all toggleable commands
+
+*Status:*
+Disabled commands: `{}`
+{}""".format(status, message)
 
 
     __mod_name__ = "Disabling"
