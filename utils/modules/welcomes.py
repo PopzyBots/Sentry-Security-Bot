@@ -574,8 +574,28 @@ def __migrate__(old_chat_id, new_chat_id):
 def __chat_settings__(chat_id, user_id):
     welcome_pref, _, _ = sql.get_welc_pref(chat_id)
     goodbye_pref, _, _ = sql.get_gdbye_pref(chat_id)
-    return "This chat has it's welcome preference set to `{}`.\n" \
-           "It's goodbye preference is `{}`.".format(welcome_pref, goodbye_pref)
+    
+    welcome_status = "Enabled" if welcome_pref else "Disabled"
+    goodbye_status = "Enabled" if goodbye_pref else "Disabled"
+    
+    return """👋 *Greetings Module*
+This module manages welcome and goodbye messages for your group.
+It helps greet new members, say goodbye when someone leaves, and keep service messages clean.
+
+*Available commands:*
+• /setwelcome — Set a custom welcome message
+• /welcome — View the current welcome message
+• /resetwelcome — Reset welcome to default
+• /cleanwelcome — Delete welcome messages after sending
+• /setgoodbye — Set a goodbye message
+• /goodbye — View the goodbye message
+• /resetgoodbye — Reset goodbye to default
+• /cleangoodbye — Delete goodbye messages after sending
+• /cleanservice — Remove join/leave service messages
+
+*Status:*
+Welcome messages: `{}`
+Goodbye messages: `{}`""".format(welcome_status, goodbye_status)
 
 
 __help__ = """
