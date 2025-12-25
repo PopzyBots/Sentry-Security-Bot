@@ -212,8 +212,21 @@ def adminlist(bot: Bot, update: Update):
 
 
 def __chat_settings__(chat_id, user_id):
-    return "You are *admin*: `{}`".format(
-        dispatcher.bot.get_chat_member(chat_id, user_id).status in ("administrator", "creator"))
+    is_admin = dispatcher.bot.get_chat_member(chat_id, user_id).status in ("administrator", "creator")
+    return """🛡️ *Admin Module*
+This module helps you manage administrators and their roles within the group.
+It allows trusted users to assign admin rights, remove them, and manage custom titles—making moderation smoother and more organized.
+
+*Available commands:*
+• /adminlist — View all current admins in the group
+• /promote — Promote a member to admin
+• /demote — Remove admin privileges from a user
+• /invitelink — Get the invite link for the group
+• /pin — Pin a message
+• /unpin — Unpin the currently pinned message
+
+*Status:*
+You are admin: `{}`""".format(is_admin)
 
 
 __help__ = """
