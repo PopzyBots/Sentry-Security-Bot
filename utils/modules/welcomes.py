@@ -645,7 +645,7 @@ WELCOME_HELP = CommandHandler("welcomehelp", welcome_help)
 
 LOGGER.info(f"Registering NEW_MEM_HANDLER for new_chat_members filter")
 
-dispatcher.add_handler(NEW_MEM_HANDLER)
+dispatcher.add_handler(NEW_MEM_HANDLER, group=0)
 dispatcher.add_handler(LEFT_MEM_HANDLER)
 dispatcher.add_handler(WELC_PREF_HANDLER)
 dispatcher.add_handler(SET_WELCOME)
