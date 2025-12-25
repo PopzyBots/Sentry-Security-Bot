@@ -828,6 +828,28 @@ def main():
         LOGGER.info("Using long polling.")
         updater.start_polling(timeout=15, read_latency=4)
 
+    # Send startup notification to all log channels
+    try:
+        from utils.modules.sql import log_channel_sql
+        from datetime import datetime
+        
+        log_channels = log_channel_sql.get_all_log_channels()
+        startup_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        startup_message = f"<b>🤖 Bot Started</b>\n\n" \
+                         f"✅ Bot is now online and ready\n" \
+                         f"⏰ Started at: <code>{startup_time}</code>"
+        
+        for log_channel in log_channels:
+            try:
+                updater.bot.send_message(log_channel.log_channel, startup_message, parse_mode=ParseMode.HTML)
+            except Exception as e:
+                LOGGER.warning(f"Failed to send startup message to log channel {log_channel.log_channel}: {e}")
+        
+        if log_channels:
+            LOGGER.info(f"Sent startup notification to {len(log_channels)} log channel(s)")
+    except Exception as e:
+        LOGGER.error(f"Error sending startup notifications: {e}")
+
     updater.idle()
 
 
