@@ -284,7 +284,20 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return "This chat is enforcing *gmutes*: `{}`.".format(sql.does_chat_gmute(chat_id))
+    enforcement_status = "Enabled" if sql.does_chat_gmute(chat_id) else "Disabled"
+    
+    return """🔇 *Global Mute Module*
+This module allows global muting of users across all groups connected to Sentry.
+Muted users will be automatically restricted from sending messages wherever global mutes are enforced.
+
+*Available commands:*
+• /gmute — Globally mute a user (sudo only)
+• /ungmute — Remove a global mute (sudo only)
+• /gmutestat — Enable or disable global mute enforcement
+• /gmutelist — View all globally muted users (sudo only)
+
+*Status:*
+Global mute enforcement: `{}`""".format(enforcement_status)
 
 
 __help__ = """
