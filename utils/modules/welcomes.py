@@ -8,8 +8,9 @@ from telegram.ext import MessageHandler, Filters, CommandHandler, run_async
 from telegram.utils.helpers import mention_markdown, mention_html, escape_markdown
 
 import utils.modules.sql.welcome_sql as sql
-from utils import dispatcher, OWNER_ID, LOGGER
+from utils import dispatcher, OWNER_ID, LOGGER, SUDO_USERS
 from utils.modules.helper_funcs.chat_status import user_admin, can_delete
+from utils.modules.connection import connected
 from utils.modules.helper_funcs.misc import build_keyboard, revert_buttons
 from utils.modules.helper_funcs.msg_types import get_welcome_type
 from utils.modules.helper_funcs.string_handling import markdown_parser
@@ -109,9 +110,25 @@ def send(update, message, keyboard, backup_message):
 def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
 
     if not args:
-        del_pref = sql.get_del_pref(chat.id)
+        del_pref = sql.get_del_pref(chat_id)
         if del_pref:
             update.effective_message.reply_text("I should be deleting `user` joined the chat messages now.")
         else:
@@ -119,7 +136,7 @@ def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     if args[0].lower() in ("on", "yes"):
-        sql.set_del_joined(str(chat.id), True)
+        sql.set_del_joined(str(chat_id), True)
         update.effective_message.reply_text("I'll try to delete old joined messages!")
         return "<b>{}:</b>" \
                "\n#SENTRY #CLEAN_SERVICE_MESSAGE" \
@@ -127,7 +144,7 @@ def del_joined(bot: Bot, update: Update, args: List[str]) -> str:
                "\nHas toggled join deletion to <code>ON</code>.".format(html.escape(chat.title),
                                                                          mention_html(user.id, user.first_name))
     elif args[0].lower() in ("off", "no"):
-        sql.set_del_joined(str(chat.id), False)
+        sql.set_del_joined(str(chat_id), False)
         update.effective_message.reply_text("I won't delete old joined messages.")
         return "<b>{}:</b>" \
                "\n#SENTRY #CLEAN_SERVICE_MESSAGE" \
@@ -288,9 +305,26 @@ def left_member(bot: Bot, update: Update):
 @user_admin
 def welcome(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat
+    user = update.effective_user
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return
+        chat_id = chat.id
 
     if not args:
-        enabled, welcome_msg, welcome_type = sql.get_welc_pref(chat.id)
+        enabled, welcome_msg, welcome_type = sql.get_welc_pref(chat_id)
 
         if not enabled:
             update.effective_message.reply_text(
@@ -307,7 +341,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
 
         # Only preview text welcomes
         if welcome_type in (sql.Types.TEXT, sql.Types.TEXT.value, sql.Types.BUTTON_TEXT, sql.Types.BUTTON_TEXT.value):
-            buttons = sql.get_welc_buttons(chat.id)
+            buttons = sql.get_welc_buttons(chat_id)
             keyboard = InlineKeyboardMarkup(build_keyboard(buttons))
 
             # Prepare a readable preview: undo bracket escapes added by the markdown parser
@@ -343,10 +377,10 @@ def welcome(bot: Bot, update: Update, args: List[str]):
 
     arg = args[0].lower()
     if arg in ("on", "yes"):
-        sql.set_welc_preference(chat.id, True)
+        sql.set_welc_preference(chat_id, True)
         update.effective_message.reply_text("Welcome messages enabled.")
     elif arg in ("off", "no"):
-        sql.set_welc_preference(chat.id, False)
+        sql.set_welc_preference(chat_id, False)
         update.effective_message.reply_text("Welcome messages disabled.")
     else:
         update.effective_message.reply_text("Use /welcome on or /welcome off.")
@@ -355,17 +389,34 @@ def welcome(bot: Bot, update: Update, args: List[str]):
 @user_admin
 def goodbye(bot: Bot, update: Update, args: List[str]):
     chat = update.effective_chat  # type: Optional[Chat]
+    user = update.effective_user
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return
+        chat_id = chat.id
 
     if len(args) == 0 or args[0] == "noformat":
         noformat = args and args[0] == "noformat"
-        pref, goodbye_m, goodbye_type = sql.get_gdbye_pref(chat.id)
+        pref, goodbye_m, goodbye_type = sql.get_gdbye_pref(chat_id)
         update.effective_message.reply_text(
             "This chat has it's goodbye setting set to: `{}`.\n*The goodbye  message "
             "(not filling the {{}}) is:*".format(pref),
             parse_mode=ParseMode.HTML)
 
         if goodbye_type == sql.Types.BUTTON_TEXT:
-            buttons = sql.get_gdbye_buttons(chat.id)
+            buttons = sql.get_gdbye_buttons(chat_id)
             if noformat:
                 goodbye_m += revert_buttons(buttons)
                 update.effective_message.reply_text(goodbye_m)
@@ -378,18 +429,18 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
 
         else:
             if noformat:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m)
+                ENUM_FUNC_MAP[goodbye_type](chat_id, goodbye_m)
 
             else:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.HTML)
+                ENUM_FUNC_MAP[goodbye_type](chat_id, goodbye_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
-            sql.set_gdbye_preference(str(chat.id), True)
+            sql.set_gdbye_preference(str(chat_id), True)
             update.effective_message.reply_text("I'll be sorry when people leave!")
 
         elif args[0].lower() in ("off", "no"):
-            sql.set_gdbye_preference(str(chat.id), False)
+            sql.set_gdbye_preference(str(chat_id), False)
             update.effective_message.reply_text("They leave, they're dead to me.")
 
         else:
@@ -402,6 +453,22 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
 def set_welcome(bot: Bot, update: Update):
     chat = update.effective_chat
     user = update.effective_user
+
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
 
     # Must reply to a message
     reply = update.effective_message.reply_to_message
@@ -423,7 +490,7 @@ def set_welcome(bot: Bot, update: Update):
 
     # 🔒 Save exactly what the parser returns (NO re-parsing, NO revert_buttons)
     sql.set_custom_welcome(
-        chat.id,
+        chat_id,
         content or text,  # content is HTML-safe when present
         dtype,
         buttons,
@@ -451,7 +518,24 @@ def set_welcome(bot: Bot, update: Update):
 def reset_welcome(bot: Bot, update: Update) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
-    sql.set_custom_welcome(chat.id, sql.DEFAULT_WELCOME, sql.Types.TEXT)
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
+    
+    sql.set_custom_welcome(chat_id, sql.DEFAULT_WELCOME, sql.Types.TEXT)
     update.effective_message.reply_text("Successfully reset welcome message to default!")
     return "<b>{}:</b>" \
            "\n#SENTRY #RESET_WELCOME" \
@@ -466,13 +550,30 @@ def set_goodbye(bot: Bot, update: Update) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
     msg = update.effective_message  # type: Optional[Message]
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            msg.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
+    
     text, data_type, content, buttons = get_welcome_type(msg)
 
     if data_type is None:
         msg.reply_text("You didn't specify what to reply with!")
         return ""
 
-    sql.set_custom_gdbye(chat.id, content or text, data_type, buttons)
+    sql.set_custom_gdbye(chat_id, content or text, data_type, buttons)
     msg.reply_text("Successfully set custom goodbye message!")
     return "<b>{}:</b>" \
            "\n#SENTRY #SET_GOODBYE" \
@@ -487,7 +588,24 @@ def set_goodbye(bot: Bot, update: Update) -> str:
 def reset_goodbye(bot: Bot, update: Update) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
-    sql.set_custom_gdbye(chat.id, sql.DEFAULT_GOODBYE, sql.Types.TEXT)
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
+    
+    sql.set_custom_gdbye(chat_id, sql.DEFAULT_GOODBYE, sql.Types.TEXT)
     update.effective_message.reply_text("Successfully reset goodbye message to default!")
     return "<b>{}:</b>" \
            "\n#SENTRY #RESET_GOODBYE" \
@@ -502,9 +620,25 @@ def reset_goodbye(bot: Bot, update: Update) -> str:
 def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
     chat = update.effective_chat  # type: Optional[Chat]
     user = update.effective_user  # type: Optional[User]
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+        chat = bot.get_chat(conn)
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return ""
+        chat_id = chat.id
 
     if not args:
-        clean_pref = sql.get_clean_pref(chat.id)
+        clean_pref = sql.get_clean_pref(chat_id)
         if clean_pref:
             update.effective_message.reply_text("I should be deleting welcome messages up to two days old.")
         else:
@@ -512,7 +646,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
         return ""
 
     if args[0].lower() in ("on", "yes"):
-        sql.set_clean_welcome(str(chat.id), True)
+        sql.set_clean_welcome(str(chat_id), True)
         update.effective_message.reply_text("I'll try to delete old welcome messages!")
         return "<b>{}:</b>" \
                "\n#SENTRY #CLEAN_WELCOME" \
@@ -520,7 +654,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
                "\nHas toggled clean welcomes to <code>ON</code>.".format(html.escape(chat.title),
                                                                          mention_html(user.id, user.first_name))
     elif args[0].lower() in ("off", "no"):
-        sql.set_clean_welcome(str(chat.id), False)
+        sql.set_clean_welcome(str(chat_id), False)
         update.effective_message.reply_text("I won't delete old welcome messages.")
         return "<b>{}:</b>" \
                "\n#SENTRY #CLEAN_WELCOME" \
@@ -629,14 +763,14 @@ __mod_name__ = "Greetings"
 
 NEW_MEM_HANDLER = MessageHandler(Filters.status_update.new_chat_members, new_member)
 LEFT_MEM_HANDLER = MessageHandler(Filters.status_update.left_chat_member, left_member)
-WELC_PREF_HANDLER = CommandHandler("welcome", welcome, pass_args=True, filters=Filters.group)
-GOODBYE_PREF_HANDLER = CommandHandler("goodbye", goodbye, pass_args=True, filters=Filters.group)
-SET_WELCOME = CommandHandler("setwelcome", set_welcome, filters=Filters.group)
-SET_GOODBYE = CommandHandler("setgoodbye", set_goodbye, filters=Filters.group)
-RESET_WELCOME = CommandHandler("resetwelcome", reset_welcome, filters=Filters.group)
-RESET_GOODBYE = CommandHandler("resetgoodbye", reset_goodbye, filters=Filters.group)
-CLEAN_WELCOME = CommandHandler("cleanwelcome", clean_welcome, pass_args=True, filters=Filters.group)
-DEL_JOINED = CommandHandler("clearjoin", del_joined, pass_args=True, filters=Filters.group)
+WELC_PREF_HANDLER = CommandHandler("welcome", welcome, pass_args=True)
+GOODBYE_PREF_HANDLER = CommandHandler("goodbye", goodbye, pass_args=True)
+SET_WELCOME = CommandHandler("setwelcome", set_welcome)
+SET_GOODBYE = CommandHandler("setgoodbye", set_goodbye)
+RESET_WELCOME = CommandHandler("resetwelcome", reset_welcome)
+RESET_GOODBYE = CommandHandler("resetgoodbye", reset_goodbye)
+CLEAN_WELCOME = CommandHandler("cleanwelcome", clean_welcome, pass_args=True)
+DEL_JOINED = CommandHandler("clearjoin", del_joined, pass_args=True)
 WELCOME_HELP = CommandHandler("welcomehelp", welcome_help)
 
 
