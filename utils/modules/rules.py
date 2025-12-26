@@ -7,14 +7,32 @@ from telegram.ext import CommandHandler, run_async, Filters
 from telegram.utils.helpers import escape_markdown
 
 import utils.modules.sql.rules_sql as sql
-from utils import dispatcher
+from utils import dispatcher, SUDO_USERS
 from utils.modules.helper_funcs.chat_status import user_admin
 from utils.modules.helper_funcs.string_handling import markdown_parser
+from utils.modules.connection import connected
 
 
 @run_async
 def get_rules(bot: Bot, update: Update):
-    chat_id = update.effective_chat.id
+    chat = update.effective_chat
+    user = update.effective_user
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=False)
+    if conn:
+        chat_id = conn
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return
+        chat_id = chat.id
+    
     send_rules(update, chat_id)
 
 
@@ -54,8 +72,25 @@ def send_rules(update, chat_id, from_pm=False):
 @run_async
 @user_admin
 def set_rules(bot: Bot, update: Update):
-    chat_id = update.effective_chat.id
+    chat = update.effective_chat
+    user = update.effective_user
     msg = update.effective_message  # type: Optional[Message]
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+    else:
+        if chat.type == "private":
+            msg.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return
+        chat_id = chat.id
+    
     raw_text = msg.text
     args = raw_text.split(None, 1)  # use python's maxsplit to separate cmd and args
     if len(args) == 2:
@@ -70,7 +105,24 @@ def set_rules(bot: Bot, update: Update):
 @run_async
 @user_admin
 def clear_rules(bot: Bot, update: Update):
-    chat_id = update.effective_chat.id
+    chat = update.effective_chat
+    user = update.effective_user
+    
+    # Allow SUDO_USERS to use in PM with connection
+    conn = connected(bot, update, chat, user.id, need_admin=True)
+    if conn:
+        chat_id = conn
+    else:
+        if chat.type == "private":
+            update.effective_message.reply_text(
+                "This command can only be used in groups or when connected to a group from PM.\n\n"
+                "To use this in PM, first connect to a group using:\n"
+                "/connect <chat_id>\n\n"
+                "Note: Only authorized users can use this feature."
+            )
+            return
+        chat_id = chat.id
+    
     sql.set_rules(chat_id, "")
     update.effective_message.reply_text("Successfully cleared rules!")
 
@@ -115,9 +167,9 @@ __help__ = """
 
 __mod_name__ = "Rules"
 
-GET_RULES_HANDLER = CommandHandler("rules", get_rules, filters=Filters.group)
-SET_RULES_HANDLER = CommandHandler("setrules", set_rules, filters=Filters.group)
-RESET_RULES_HANDLER = CommandHandler("clearrules", clear_rules, filters=Filters.group)
+GET_RULES_HANDLER = CommandHandler("rules", get_rules)
+SET_RULES_HANDLER = CommandHandler("setrules", set_rules)
+RESET_RULES_HANDLER = CommandHandler("clearrules", clear_rules)
 
 dispatcher.add_handler(GET_RULES_HANDLER)
 dispatcher.add_handler(SET_RULES_HANDLER)
