@@ -42,6 +42,10 @@ if is_module_loaded(FILENAME):
                 # Should be safe since check_update passed.
                 command = update.effective_message.text_html.split(None, 1)[0][1:].split('@')[0]
 
+                # Skip disable check for private chats
+                if chat.type == "private":
+                    return True
+
                 # disabled, admincmd, user admin
                 if sql.is_command_disabled(chat.id, command):
                     return command in ADMIN_CMDS and is_user_admin(chat, user.id)
@@ -61,6 +65,9 @@ if is_module_loaded(FILENAME):
 
         def check_update(self, update):
             chat = update.effective_chat
+            # Skip disable check for private chats
+            if chat.type == "private":
+                return super().check_update(update)
             return super().check_update(update) and not sql.is_command_disabled(chat.id, self.friendly)
 
 
