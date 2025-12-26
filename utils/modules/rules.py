@@ -99,7 +99,16 @@ def set_rules(bot: Bot, update: Update):
         markdown_rules = markdown_parser(txt, entities=msg.parse_entities(), offset=offset)
 
         sql.set_rules(chat_id, markdown_rules)
-        update.effective_message.reply_text("Successfully set rules for this group.")
+        update.effective_message.reply_text("✅ Successfully set rules for this group.")
+    else:
+        update.effective_message.reply_text(
+            "❌ <b>You need to provide the rules text!</b>\n\n"
+            "<b>Usage:</b>\n"
+            "<code>/setrules Your group rules here</code>\n\n"
+            "<b>Example:</b>\n"
+            "<code>/setrules 1. Be respectful\n2. No spam\n3. Follow Telegram ToS</code>",
+            parse_mode="HTML"
+        )
 
 
 @run_async
