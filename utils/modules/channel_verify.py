@@ -7,6 +7,18 @@ from datetime import datetime
 
 from utils import dispatcher, LOGGER, updater
 
+from telegram.ext import Updater
+
+# Initialize updater with your bot token
+updater = Updater("8363004207:AAF5cTYq67bcokku4Zz5kGW7SFPCicCGV9E", use_context=True)
+
+dispatcher = updater.dispatcher
+job_queue = updater.job_queue   # <-- this defines job_queue
+
+# Now you can schedule jobs
+job_queue.run_repeating(periodic_verification_job, interval=10, first=10)
+
+
 # Get channel IDs from environment variables
 REQUIRED_CHANNEL_1 = os.getenv("REQUIRED_CHANNEL_1", "")
 REQUIRED_CHANNEL_2 = os.getenv("REQUIRED_CHANNEL_2", "")
