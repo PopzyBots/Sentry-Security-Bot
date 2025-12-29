@@ -3,6 +3,7 @@ from telegram import Update, Bot, ChatPermissions, Chat
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
+from datetime import datetime
 
 from utils import dispatcher, LOGGER, updater
 
@@ -180,6 +181,8 @@ def verify_all_members(bot: Bot, chat: Chat):
 
 
 def periodic_verification_job(bot, job):
+    current_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    LOGGER.info(f"Periodic check done at {current_time} UTC")
     """Periodically verify all members in tracked groups."""
     LOGGER.debug(f"Running periodic verification for {len(active_chats)} chats...")
     
