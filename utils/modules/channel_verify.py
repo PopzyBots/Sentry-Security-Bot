@@ -168,7 +168,7 @@ def verify_on_message(update: Update, context):
 # PERIODIC JOB
 # ==============================
 
-def periodic_verification_job(context):
+def periodic_verification_job(bot, job):
     bot = context.bot
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     LOGGER.debug(f"Periodic verification @ {now} UTC")
