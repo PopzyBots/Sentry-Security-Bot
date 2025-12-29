@@ -180,11 +180,11 @@ def verify_on_message(update: Update, context):
 # PM COMMAND: /checkpresence
 # ==============================
 
-def checkpresence(update: Update, context):
-    bot = context.bot
+def checkpresence(bot: Bot, update: Update):
     user = update.effective_user
     chat = update.effective_chat
 
+    # Must be private chat
     if chat.type != "private":
         update.message.reply_text("❌ Use /checkpresence in private chat.")
         return
@@ -228,7 +228,6 @@ def checkpresence(update: Update, context):
         "✅ *Presence Check Complete*\n\n" + "\n\n".join(reports),
         parse_mode="Markdown",
     )
-
 
 # ==============================
 # PERIODIC JOB
