@@ -3,7 +3,7 @@ from datetime import datetime
 
 from telegram import Update, Bot, ChatPermissions, Chat
 from telegram.error import BadRequest, TelegramError
-from telegram.ext import MessageHandler, Filters
+from telegram.ext import MessageHandler, Filters, CommandHandler
 
 from utils import dispatcher, LOGGER, updater
 
@@ -14,6 +14,14 @@ from utils import dispatcher, LOGGER, updater
 job_queue = updater.job_queue
 active_chats = set()
 known_members = {}
+
+# ==============================
+# LEGACY USERS (MANUAL IMPORT)
+# ==============================
+
+# 👇 ADD YOUR MANUALLY COLLECTED USER IDS HERE
+# Example: old_users = {123456789, 987654321}
+old_users = set()
 
 # ==============================
 # CONFIG
@@ -134,6 +142,10 @@ def welcome_mute(update: Update, context):
 
     active_chats.add(chat.id)
 
+    # 🔹 Inject legacy users into cache when bot sees the group
+    for uid in old_users:
+        known_members.setdefault(chat.id, {})[uid] = "LegacyUser"
+
     if not message or not message.new_chat_members:
         return
 
@@ -162,6 +174,60 @@ def verify_on_message(update: Update, context):
     active_chats.add(chat.id)
     track_member(user.id, chat.id, user.first_name)
     verify_and_restrict_user(context.bot, chat.id, user.id, user.first_name)
+
+
+# ==============================
+# PM COMMAND: /checkpresence
+# ==============================
+
+def checkpresence(update: Update, context):
+    bot = context.bot
+    user = update.effective_user
+    chat = update.effective_chat
+
+    if chat.type != "private":
+        update.message.reply_text("❌ Use /checkpresence in private chat.")
+        return
+
+    reports = []
+
+    for group_id in list(active_chats):
+        try:
+            group = bot.get_chat(group_id)
+            member = group.get_member(user.id)
+
+            if member.status not in ("administrator", "creator"):
+                continue
+
+            members = known_members.get(group_id, {})
+            checked = muted = unmuted = 0
+
+            for uid, name in members.items():
+                result = verify_and_restrict_user(bot, group_id, uid, name)
+                if result is True:
+                    unmuted += 1
+                elif result is False:
+                    muted += 1
+                checked += 1
+
+            reports.append(
+                f"👥 *{group.title}*\n"
+                f"• Checked: {checked}\n"
+                f"• Muted: {muted}\n"
+                f"• Unmuted: {unmuted}"
+            )
+
+        except TelegramError:
+            continue
+
+    if not reports:
+        update.message.reply_text("⚠️ No admin access to tracked groups.")
+        return
+
+    update.message.reply_text(
+        "✅ *Presence Check Complete*\n\n" + "\n\n".join(reports),
+        parse_mode="Markdown",
+    )
 
 
 # ==============================
@@ -202,6 +268,11 @@ dispatcher.add_handler(
     group=2,
 )
 
+dispatcher.add_handler(
+    CommandHandler("checkpresence", checkpresence),
+    group=3,
+)
+
 if REQUIRED_CHANNEL_IDS:
     job_queue.run_repeating(periodic_verification_job, interval=5, first=10)
     LOGGER.info("Channel verification enabled (every 5 seconds)")
@@ -221,6 +292,7 @@ Automatically mutes users unless they are members of required channels.
 • Verifies users on join
 • Verifies users on message
 • Periodic re-verification
+• Manual /checkpresence (PM only)
 • Admins are never muted
 
 Environment variables:
