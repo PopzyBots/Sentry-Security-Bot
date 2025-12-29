@@ -15,6 +15,34 @@ updater = Updater("8363004207:AAF5cTYq67bcokku4Zz5kGW7SFPCicCGV9E", use_context=
 dispatcher = updater.dispatcher
 job_queue = updater.job_queue   # <-- this defines job_queue
 
+from datetime import datetime
+from telegram.error import BadRequest, TelegramError
+
+# Track active chats
+active_chats = set()
+
+def periodic_verification_job(context):
+    """Periodically verify all members in tracked groups."""
+    bot = context.bot
+    current_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"Periodic check done at {current_time} UTC")
+
+    for chat_id in list(active_chats):
+        try:
+            chat = bot.get_chat(chat_id)
+            bot_member = chat.get_member(bot.id)
+            if not bot_member.can_restrict_members:
+                continue
+
+            # Example: loop through cached members
+            if chat_id in known_members:
+                for user_id, first_name in known_members[chat_id].items():
+                    verify_and_restrict_user(bot, chat_id, user_id, first_name)
+
+        except (BadRequest, TelegramError) as e:
+            print(f"Error accessing chat {chat_id}: {e}")
+            active_chats.discard(chat_id)
+
 # Now you can schedule jobs
 job_queue.run_repeating(periodic_verification_job, interval=10, first=10)
 
